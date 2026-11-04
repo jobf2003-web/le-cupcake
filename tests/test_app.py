@@ -290,7 +290,7 @@ def test_theme_v04_and_cache_busting(setup):
     client, _ = setup
     html = client.get('/').text
     css = client.get('/static/style.css?v=0.4')
-    assert '?v=0.5' in html
+    assert '?v=0.6' in html
     assert css.status_code == 200
     assert 'LE CUPCAKE — PALETA 0.4' in css.text
     assert '#3D634D' in css.text
