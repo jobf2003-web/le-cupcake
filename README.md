@@ -1,8 +1,18 @@
 # Le Cupcake — loja virtual de cupcakes (PIT II)
 
-**Versão:** 0.5 — protótipo acadêmico funcional ampliado. A marca e os produtos são **fictícios**. O sistema **não cobra pagamentos reais** nem envia e-mails/SMS.
+**Versão:** 0.6 — protótipo acadêmico funcional ampliado. A marca e os produtos são **fictícios**. O sistema **não cobra pagamentos reais** nem envia e-mails/SMS.
 
 O aplicativo dá continuidade ao planejamento da loja de cupcakes apresentado na disciplina **Projeto Integrador Transdisciplinar em Engenharia de Software I**. Não implementa as 25 histórias originais na íntegra; veja o mapeamento em [`docs/Mapa_25_Historias.md`](docs/Mapa_25_Historias.md).
+
+## Melhorias de usabilidade — versão 0.6 (04/11/2026)
+
+Após revisar as áreas não cobertas pelas fichas de verificação, foram incorporadas melhorias preventivas, sem alterar o visual principal: atalho de teclado para acessar o conteúdo, foco em mensagens de erro, orientação dinâmica entre entrega e retirada, valores estimados anunciados a tecnologias assistivas, tratamento de fotografias externas indisponíveis, pequenos ajustes para telas estreitas e respeito à preferência por movimento reduzido.
+
+**Verificação técnica:** 30 testes automatizados aprovados (27 originais + 3 novos). Também foram conferidos os fluxos principais de checkout e as larguras de 390 px e 320 px em Chromium local com HTML renderizado pela aplicação; nesses cenários, não houve rolagem horizontal. As fotografias originais permanecem inalteradas quando carregam corretamente.
+
+Os ajustes acima são melhorias de qualidade identificadas na revisão técnica, não resultados atribuídos a participantes que não testaram o sistema.
+
+**Aplicação hospedada:** https://le-cupcake.onrender.com/ (a publicação da nova versão depende da atualização do serviço de hospedagem).
 
 ## Como executar no Windows (caminho mais fácil)
 
@@ -71,7 +81,7 @@ python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-Os testes automatizados incluem as verificações da versão 0.4 e os novos fluxos de contas, cupons, avaliação, moderação, relatórios e entregas. Isso **não substitui** os **cinco testes com pessoas reais** exigidos pela universidade. Há um modelo para os registros humanos em `docs/Modelo_Avaliacao_5_Usuarios.md`.
+Os testes automatizados incluem as verificações anteriores e também os novos cenários de acessibilidade, navegação e orientação de entrega da versão 0.6. Isso **não substitui** os **cinco testes com pessoas reais** exigidos pela universidade. Há um modelo para os registros humanos em `docs/Modelo_Avaliacao_5_Usuarios.md`.
 
 ## Publicação no GitHub e hospedagem
 
@@ -81,7 +91,7 @@ Os testes automatizados incluem as verificações da versão 0.4 e os novos flux
 4. **Atenção ao SQLite:** ambientes de hospedagem com armazenamento efêmero podem apagar os pedidos ao reiniciar; use armazenamento persistente ou migre para PostgreSQL antes da avaliação real.
 5. Nunca insira dados verdadeiros de cartão neste protótipo. Para teste público, use nomes e endereços fictícios, pois esta versão ainda não passou por uma revisão formal de segurança e privacidade de produção.
 
-**Nenhum repositório ou link público foi criado automaticamente neste pacote.** Essas etapas exigem sua conta/serviço de hospedagem.
+**Repositório do projeto:** https://github.com/jobf2003-web/le-cupcake. **Link da aplicação:** https://le-cupcake.onrender.com/. A disponibilidade pública e a atualização da hospedagem devem ser conferidas na entrega.
 
 ## Materiais da universidade ainda pendentes
 
