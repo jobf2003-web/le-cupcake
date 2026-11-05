@@ -6,4 +6,4 @@
 - O projeto usa fotografias reais de terceiros provenientes do Wikimedia Commons, com autor, fonte e licença em docs/Referencias_Fotograficas_Simplificadas.docx; são fotos ilustrativas de outros cupcakes, não dos produtos da loja fictícia.
 - Pagamentos são apenas registros de status `pendente`, sem captura de dados financeiros.
 - A aplicação está disponível para demonstração em **https://le-cupcake.onrender.com/** e o código está em **https://github.com/jobf2003-web/le-cupcake**. A hospedagem gratuita pode usar armazenamento efêmero; persistência permanente do banco de dados ainda não está assegurada. Os dois vídeos foram gravados, e seus links de compartilhamento serão acrescentados quando disponibilizados.
-- O documento acadêmico em `Documentacao_ABNT.docx` foi produzido antes da versão 0.6 e deve ser atualizado para refletir as funcionalidades e os 30 testes técnicos da aplicação.
+- O documento acadêmico em `Documentacao_ABNT.docx` foi produzido antes da versão 0.2 e deve ser atualizado para refletir as funcionalidades e os 30 testes técnicos da aplicação.
