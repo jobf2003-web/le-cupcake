@@ -1,31 +1,36 @@
-# Manual de utilização — Le Cupcake, versão 0.2
+# Manual de uso — Le Cupcake 0.2 (branch em desenvolvimento)
 
-## Iniciar no Windows
+Este manual descreve o código da branch `pit-ii-25-historias-completas`. **A versão pública no Render ainda não foi substituída**. Use apenas dados fictícios.
 
-Extraia o ZIP, abra a pasta e execute `INICIAR_WINDOWS.bat`. Na primeira execução, tenha internet para instalar as bibliotecas. Acesse `http://127.0.0.1:8000`. Configure `ADMIN_EMAIL` e `ADMIN_PASSWORD` em `.env`, interrompa o servidor e inicie novamente para habilitar o painel.
+## Preparação local
 
-## Cliente
+Instale Python 3.11+, execute `python -m pip install -r requirements.txt` e `python iniciar.py` (ou `INICIAR_WINDOWS.bat` no Windows). Abra `http://127.0.0.1:8000`. Configure `ADMIN_EMAIL` e `ADMIN_PASSWORD` com senha forte para acesso administrativo; não comite `.env`.
 
-1. Escolha cupcakes no cardápio ou nos filtros. O produto contém descrição, preço, fotografia real e estoque.
-2. Na página do produto, veja outras sugestões da mesma categoria. Caso tenha conta, você pode enviar uma avaliação (sujeita à moderação).
-3. Adicione itens ao carrinho e edite as quantidades.
-4. Opcionalmente, abra **Entrar / Cadastrar**, crie uma conta com senha de 12 ou mais caracteres e faça login. Seus pedidos posteriores aparecerão em **Minha conta**.
-5. No checkout, informe nome, e-mail, telefone e modalidade de recebimento. Ao selecionar **entrega**, o sistema orienta a preencher o endereço completo; na **retirada**, esse campo deixa de ser obrigatório. Insira o cupom (se tiver) no campo próprio.
-6. Confirme o pedido, confira o desconto e o valor final e guarde o link de acompanhamento. Você também poderá abrir os pedidos vinculados a sua conta em **Minha conta**.
+## Cliente e visitante
 
-**Importante:** não há processamento de pagamentos ou entregas reais. Não insira dados verdadeiros de cartões, nomes ou endereços ao testar o protótipo.
+1. No **catálogo**, busque por texto, combine categorias e observe os produtos sem estoque. Na área do cliente autenticado podem aparecer sugestões conforme o histórico de compras.
+2. No **carrinho**, adicione cupcakes, ajuste quantidades e exclua itens. Em **Combos**, selecione sabores e quantidades; o servidor calcula preços e disponibilidade dos componentes.
+3. No **checkout**, escolha entrega ou retirada. Para entrega, informe CEP/região atendida e agendamento habilitado. A taxa é **demonstrativa**, definida pelo administrador, sem transportadora.
+4. Escolha `PIX demonstrativo`, `cartão demonstrativo` ou `a combinar`. Nas duas primeiras modalidades, a decisão de aprovar/recusar é apenas uma **simulação interna**; não ocorre transferência financeira nem coleta de cartão.
+5. Anote o link privado do pedido e acompanhe o status; a tela consulta a API a cada 15 segundos, e notificações internas aparecem em **Minha conta** para clientes cadastrados.
+6. Crie conta ou faça login para consultar o histórico e avaliar produtos. O fluxo de recuperação de senha usa token com validade; o e-mail só é enviado se o administrador configurou SMTP com URL pública HTTPS. Sem serviço externo, a recuperação por e-mail não está disponível.
 
 ## Administrador
 
-1. Entre em **Área administrativa** com as credenciais do arquivo `.env`.
-2. No painel, gerencie produtos, fotos reais da biblioteca documentada, preços, estoque e informações nutricionais verificadas. Use **Pedidos** para avançar o status; cancelamentos devolvem estoque e liberam o uso de eventual cupom.
-3. Acesse **Cupons** para criar códigos percentuais/fixos, definir mínimo e limite de usos ou desativá-los.
-4. Acesse **Avaliações** para publicar, ocultar e responder comentários recebidos.
-5. Em **Relatórios**, consulte o total de pedidos (não cancelados), seus valores e produtos mais pedidos. Os valores **não** indicam pagamentos recebidos.
-6. Em **Entregas**, ajuste as duas modalidades e seus custos. Ao menos uma deve permanecer ativa.
-7. Em **Clientes**, consulte as contas e bloqueie ou reative seu acesso.
-8. Use **Sair** para encerrar a sessão de administrador.
+1. Acesse **Área administrativa** usando credenciais próprias, sem senha padrão.
+2. Em **Produtos**, crie/edite cupcakes, preço, estoque, foto documentada, ingredientes e alergênicos. O arquivamento lógico é bloqueado em produtos com pedidos ativos; o histórico administrativo registra alterações.
+3. Em **Entregas**, configure modalidades, regiões/faixas CEP, taxas, janelas, capacidade e datas bloqueadas. O agendamento é interno e não confirma transporte real.
+4. Em **Pedidos**, atualize status conforme as transições permitidas. Não é permitido cancelar após iniciar o preparo. Pagamentos fictícios pendentes não podem ser tratados como aprovados; `a combinar` permanece não verificado.
+5. Em **Cupons**, cadastre descontos/validade; em **Avaliações**, modere e responda; em **Clientes**, edite e bloqueie cadastros com trilha.
+6. Em **Relatórios**, filtre dados de pedidos por mês/categoria; os valores são **pedidos registrados, não recebimentos bancários**. Em **Notificações**, veja avisos internos e marque-os como lidos.
 
-## Limitações e publicação
+## Limitações e testes
 
-Ainda não há recuperação de senha, autenticação/verificação por e-mail, mensagens automáticas, gateway de pagamento, agendamento ou combos. Antes de receber usuários reais, revisar privacidade, segurança e persistência dos dados. As fotos são reais e suas fontes/licenças constam somente do arquivo `Referencias_Fotograficas_Simplificadas.docx`.
+- **Não realiza pagamentos reais**, PIX, estornos bancários ou integração com gateways.
+- **Não envia SMS/e-mail de andamento de pedidos**; mensagens são internas no sistema.
+- Recomendações e conteúdo nutricional são demonstrativos e dependem de dados cadastrados.
+- O SQLite pode ser apagado quando a instância gratuita for reiniciada; não use clientes/endereços reais.
+- Testes: `python -m pip install -r requirements-dev.txt && python -m pytest -q`. Resultado local de referência: **93 aprovados**. Faltam medições de carga, inspeção visual em navegador real e confirmação da publicação final.
+- Fotografias externas e licenças devem ser conferidas antes do uso público.
+
+O primeiro vídeo e as cinco avaliações pertencem ao histórico da versão anterior. A nova apresentação será gravada apenas após a validação e publicação da edição 0.2 consolidada.
