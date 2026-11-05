@@ -38,4 +38,4 @@
 
 **Restrições:** não existe pagamento real nem gateway (US-12/25), e-mail/SMS de pedido (US-11/21), logística contratada (US-04/05/13/24); a recuperação de senha depende de SMTP configurado (US-07). Consulta de pedidos é por polling 15 s (US-06/19), não push.
 
-O documento histórico `Documentacao_ABNT.docx`, o formulário preenchido anteriormente e o laudo antigo são **anteriores ao Ciclo F** e não devem ser considerados versões finais da ampliação 0.2. A versão atual está na documentação do [Ciclo F](Ciclo_F_Auditoria_Consolidada_v02.md).
+A referência técnica do desenvolvimento da versão 0.2 é a documentação do [Ciclo F](Ciclo_F_Auditoria_Consolidada_v02.md). Os arquivos oficiais de entrega devem refletir o estado desta branch, incluindo 27 tabelas no banco migrado e 93 testes locais, e serão conferidos após a publicação pública.
