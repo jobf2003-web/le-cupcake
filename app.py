@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import os
 from contextlib import contextmanager
 from decimal import Decimal, InvalidOperation
@@ -117,6 +118,20 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
     templates.env.filters['reais'] = reais
     templates.env.filters['status_nome'] = lambda x: {'recebido':'Recebido', 'confirmado':'Confirmado', 'preparo':'Em preparo', 'pronto':'Pronto', 'em_entrega':'Em entrega', 'concluido':'Concluído', 'cancelado':'Cancelado'}.get(x, x)
     app.state.db_path = db_path
+
+    campos_produto = ('nome', 'descricao', 'categoria_id', 'preco_centavos',
+                      'estoque', 'imagem_url', 'informacoes_nutricionais',
+                      'ativo', 'excluido_em')
+
+    def snapshot_produto(row):
+        return {chave: row[chave] for chave in campos_produto}
+
+    def auditar_produto(db, usuario_id, produto_id, acao, antes, depois):
+        dados = {'antes': antes, 'depois': depois}
+        db.execute('''INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao)
+                      VALUES (?,?,?,?,?)''',
+                   (usuario_id, 'cupcakes', produto_id, acao,
+                    json.dumps(dados, ensure_ascii=False, sort_keys=True)))
 
     @contextmanager
     def db_connect():
@@ -640,9 +655,11 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                      'produtos': db.execute('SELECT COUNT(*) FROM cupcakes WHERE ativo=1').fetchone()[0],
                      'pendentes': db.execute("SELECT COUNT(*) FROM pedidos WHERE status IN ('recebido','confirmado','preparo')").fetchone()[0]}
             products = db.execute('''SELECT c.*,k.nome categoria FROM cupcakes c JOIN categorias k ON k.id=c.categoria_id
-                                      ORDER BY c.ativo DESC,c.id''').fetchall()
+                                      WHERE c.excluido_em IS NULL ORDER BY c.ativo DESC,c.id''').fetchall()
+            archived = db.execute('''SELECT id,nome,excluido_em FROM cupcakes WHERE excluido_em IS NOT NULL
+                                     ORDER BY excluido_em DESC, id DESC LIMIT 100''').fetchall()
             orders = db.execute('SELECT * FROM pedidos ORDER BY id DESC LIMIT 6').fetchall()
-        return page(request, 'admin.html', stats=stats, products=products, orders=orders)
+        return page(request, 'admin.html', stats=stats, products=products, orders=orders, archived=archived)
 
     @app.get('/admin/produtos/novo', response_class=HTMLResponse)
     def new_product(request: Request):
@@ -655,7 +672,7 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
     def edit_product(request: Request, product_id: int):
         admin_id(request)
         with db_connect() as db:
-            product = db.execute('SELECT * FROM cupcakes WHERE id=?', (product_id,)).fetchone()
+            product = db.execute('SELECT * FROM cupcakes WHERE id=? AND excluido_em IS NULL', (product_id,)).fetchone()
             categories = db.execute('SELECT * FROM categorias ORDER BY id').fetchall()
         if not product:
             raise HTTPException(404, 'Produto não encontrado.')
@@ -676,6 +693,8 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             category_id = int(form.get('categoria_id', 0))
             stock = int(form.get('estoque', 0))
             price = parse_brl(str(form.get('preco', '')))
+            if product_id < 0:
+                raise ValueError('Identificador do produto inválido.')
         except (ValueError, TypeError) as exc:
             errors.append(str(exc) or 'Valores inválidos.')
             product_id, category_id, stock, price = 0, 0, 0, 0
@@ -691,20 +710,36 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             categories = db.execute('SELECT * FROM categorias ORDER BY id').fetchall()
             if not db.execute('SELECT id FROM categorias WHERE id=?', (category_id,)).fetchone():
                 errors.append('Categoria inválida.')
-            if product_id and not db.execute('SELECT id FROM cupcakes WHERE id=?', (product_id,)).fetchone():
-                errors.append('Produto não encontrado.')
+            if product_id and not db.execute('''SELECT id FROM cupcakes WHERE id=? AND excluido_em IS NULL''',
+                                             (product_id,)).fetchone():
+                errors.append('Produto inexistente ou já excluído.')
             if not errors:
+                db.execute('BEGIN IMMEDIATE')
                 if product_id:
-                    db.execute('''UPDATE cupcakes SET categoria_id=?,nome=?,descricao=?,preco_centavos=?,estoque=?,imagem_url=?,informacoes_nutricionais=?
-                        WHERE id=?''', (category_id, name, description, price, stock, icon, nutrition or None, product_id))
+                    before_row = db.execute('''SELECT * FROM cupcakes WHERE id=? AND excluido_em IS NULL''',
+                                            (product_id,)).fetchone()
+                    if before_row is None:
+                        raise HTTPException(409, 'Produto excluído durante a edição.')
+                    before = snapshot_produto(before_row)
+                    db.execute('''UPDATE cupcakes SET categoria_id=?,nome=?,descricao=?,preco_centavos=?,
+                                  estoque=?,imagem_url=?,informacoes_nutricionais=? WHERE id=?''',
+                               (category_id, name, description, price, stock, icon, nutrition or None, product_id))
                 else:
-                    cur = db.execute('''INSERT INTO cupcakes(categoria_id,nome,descricao,preco_centavos,estoque,imagem_url,informacoes_nutricionais)
-                        VALUES (?,?,?,?,?,?,?)''', (category_id, name, description, price, stock, icon, nutrition or None))
+                    before = None
+                    cur = db.execute('''INSERT INTO cupcakes(categoria_id,nome,descricao,preco_centavos,estoque,
+                                        imagem_url,informacoes_nutricionais) VALUES (?,?,?,?,?,?,?)''',
+                                     (category_id, name, description, price, stock, icon, nutrition or None))
                     product_id = cur.lastrowid
-                db.execute('INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao) VALUES (?,?,?,?,?)',
-                           (user_id, 'cupcakes', product_id, 'salvar', 'Cadastro ou edição de produto'))
+                after_row = db.execute('SELECT * FROM cupcakes WHERE id=?', (product_id,)).fetchone()
+                after = snapshot_produto(after_row)
+                if before is None or before != after:
+                    auditar_produto(db, user_id, product_id,
+                                   'criar produto' if before is None else 'editar produto', before, after)
+                if before is not None and before['estoque'] != after['estoque']:
+                    db.execute('''INSERT INTO estoque_movimentos(cupcake_id,variacao,motivo) VALUES (?,?,?)''',
+                               (product_id, after['estoque'] - before['estoque'],
+                                'Ajuste manual pelo administrador'))
         if errors:
-            # Keep the values typed by the administrator when input is rejected.
             return page(request, 'admin_produto.html', status_code=422, product=None,
                         categories=categories, error=' '.join(errors), form_values=dict(form))
         flash(request, 'Produto salvo com sucesso.', 'sucesso')
@@ -715,14 +750,72 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         user_id = admin_id(request)
         await valid_form(request)
         with db_connect() as db:
-            p = db.execute('SELECT ativo FROM cupcakes WHERE id=?', (product_id,)).fetchone()
+            p = db.execute('SELECT * FROM cupcakes WHERE id=? AND excluido_em IS NULL', (product_id,)).fetchone()
             if not p:
                 raise HTTPException(404, 'Produto não encontrado.')
             db.execute('UPDATE cupcakes SET ativo=? WHERE id=?', (0 if p['ativo'] else 1, product_id))
-            db.execute('INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,?,?,?)',
-                       (user_id, 'cupcakes', product_id, 'alterar visibilidade'))
+            depois = db.execute('SELECT * FROM cupcakes WHERE id=?', (product_id,)).fetchone()
+            auditar_produto(db, user_id, product_id, 'alterar visibilidade',
+                           snapshot_produto(p), snapshot_produto(depois))
         flash(request, 'Visibilidade atualizada.', 'sucesso')
         return redirect('/admin')
+
+    @app.post('/admin/produtos/{product_id}/excluir')
+    async def archive_product(request: Request, product_id: int):
+        # Exclusão lógica mantém integridade de pedidos concluídos, avaliações e auditoria.
+        usuario = admin_id(request)
+        await valid_form(request)
+        with db_connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            item = db.execute('SELECT * FROM cupcakes WHERE id=? AND excluido_em IS NULL',
+                              (product_id,)).fetchone()
+            if item is None:
+                raise HTTPException(404, 'Produto inexistente ou já excluído.')
+            active = db.execute('''SELECT 1 FROM pedido_itens i JOIN pedidos p ON p.id=i.pedido_id
+                                   WHERE i.cupcake_id=? AND p.status NOT IN ('concluido','cancelado')
+                                   LIMIT 1''', (product_id,)).fetchone()
+            if active is not None:
+                raise HTTPException(422, 'Este cupcake possui pedido ativo e não pode ser excluído.')
+            in_combo = db.execute('''SELECT 1 FROM combo_itens i JOIN combos c ON c.id=i.combo_id
+                                     WHERE i.cupcake_id=? AND c.ativo=1 LIMIT 1''',
+                                  (product_id,)).fetchone()
+            if in_combo is not None:
+                raise HTTPException(422, 'Este cupcake pertence a um combo ativo e não pode ser excluído.')
+            db.execute('''UPDATE cupcakes SET ativo=0, excluido_em=CURRENT_TIMESTAMP
+                          WHERE id=? AND excluido_em IS NULL''', (product_id,))
+            depois = db.execute('SELECT * FROM cupcakes WHERE id=?', (product_id,)).fetchone()
+            auditar_produto(db, usuario, product_id, 'excluir produto',
+                           snapshot_produto(item), snapshot_produto(depois))
+        flash(request, 'Produto excluído da vitrine e arquivado para preservar o histórico.', 'sucesso')
+        return redirect('/admin')
+
+    @app.get('/admin/produtos/{product_id}/historico', response_class=HTMLResponse)
+    def product_history(request: Request, product_id: int):
+        admin_id(request)
+        with db_connect() as db:
+            produto = db.execute('SELECT id, nome, excluido_em FROM cupcakes WHERE id=?',
+                                 (product_id,)).fetchone()
+            if produto is None:
+                raise HTTPException(404, 'Produto não encontrado.')
+            rows = db.execute('''SELECT a.acao,a.descricao,a.criado_em,u.nome usuario_nome
+                                 FROM auditoria a LEFT JOIN usuarios u ON u.id=a.usuario_id
+                                 WHERE a.entidade='cupcakes' AND a.entidade_id=?
+                                 ORDER BY a.id DESC LIMIT 150''', (product_id,)).fetchall()
+            history = []
+            for row in rows:
+                desc = row['descricao'] or ''
+                try:
+                    data = json.loads(desc)
+                    if isinstance(data, dict) and set(data) == {'antes','depois'}:
+                        antes = data['antes'] or {}
+                        depois = data['depois'] or {}
+                        changes = [key for key in depois if antes.get(key) != depois.get(key)]
+                        desc = 'Campos alterados: ' + ', '.join(changes) if changes else 'Sem alterações de campos'
+                except (ValueError, TypeError, AttributeError):
+                    pass
+                history.append({'acao':row['acao'],'descricao':desc,
+                                'criado_em':row['criado_em'], 'usuario_nome':row['usuario_nome'] or 'Sistema'})
+        return page(request, 'admin_produto_historico.html', product=produto, history=history)
 
     @app.get('/admin/pedidos', response_class=HTMLResponse)
     def admin_orders(request: Request):
