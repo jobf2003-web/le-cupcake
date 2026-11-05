@@ -6,7 +6,7 @@
 
 **Backlog:** 25 histórias; soma da tabela original = **320 horas**; texto corrido original menciona **332 horas**. Divergência mantida para esclarecimento; não estimar horas de implementação a partir desses números sem replanejamento.
 
-**Legenda da situação:** a situação registrada é o estado PRELIMINAR da versão pública 0.2, reavaliado diante dos critérios completos da PIT I. Não é atestado de conformidade.
+**Legenda da situação:** a coluna de situação preliminar registra o diagnóstico da implementação inicial 0.1, antes dos Ciclos A–F da versão 0.2. Não é o estado final da versão 0.2 nem atestado de conformidade. Para o estado atual, consultar `Mapa_25_Historias.md` e o relatório do Ciclo F.
 
 | US | História | Prioridade original | Horas originais | Situação preliminar | Principal lacuna |
 |---:|---|---:|---:|---|---|
