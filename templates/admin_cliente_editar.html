@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Editar cliente{% endblock %}
+{% block content %}
+<div class="container inner-page admin-page"><a class="breadcrumb" href="/admin/clientes">← Clientes</a>
+  <div class="page-header"><h1>Editar cadastro de cliente</h1><p>Alterações feitas pela administração ficam registradas para auditoria. Não altera senha.</p></div>
+  <form class="form-panel narrow-form" method="post" action="/admin/clientes/{{ user.id }}/salvar">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <div class="field"><label for="cliente-nome">Nome completo</label>
+      <input id="cliente-nome" name="nome" type="text" required minlength="3" maxlength="120" value="{{ user.nome }}"></div>
+    <div class="field"><label for="cliente-email">E-mail</label>
+      <input id="cliente-email" name="email" type="email" required maxlength="200" value="{{ user.email }}"></div>
+    <p class="tiny-note">Situação da conta: {{ 'Ativa' if user.ativo else 'Bloqueada' }}</p>
+    <button class="btn btn-primary" type="submit">Salvar alterações</button>
+    <a class="btn btn-outline" href="/admin/clientes/{{ user.id }}/historico">Histórico</a>
+  </form>
+</div>
+{% endblock %}

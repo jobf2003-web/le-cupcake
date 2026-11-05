@@ -108,7 +108,7 @@ def test_reset_expiration_wrong_csrf_throttle(fixture):
     reset_path=app.state.test_reset_links[0].split('testserver')[-1]
     assert 'inválido' in client.get(reset_path).text
     with sqlite3.connect(path) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0]==5
+        assert db.execute('PRAGMA user_version').fetchone()[0]==6
         assert db.execute('PRAGMA foreign_key_check').fetchall()==[]
 
 

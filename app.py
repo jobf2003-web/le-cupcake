@@ -21,6 +21,9 @@ from photo_sources import PHOTOS, PRODUCT_PHOTO_KEYS, ALLOWED_PHOTO_URLS
 from commerce_delivery import frete_por_regiao, validar_agenda, cep_normalizado
 from commerce_combos import build_bundle, sanitize_combos, COMBO_NOME, MIN_PECAS, MAX_PECAS, MAX_COMBOS
 from migrations import apply_migrations
+from order_notifications import (notify_new_order,notify_status_change,user_notifications,
+                                 mark_user_notifications_read,STATUS_LABELS)
+from sales_reporting import report_data
 from customer_relationship import send_password_reset_email, make_reset_digest, get_recommendations, active_promotions, valid_dates
 
 from fastapi import FastAPI, HTTPException, Request
@@ -651,6 +654,8 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                            (order_id, 'recebido', 'Pedido registrado pelo site'))
                 db.execute('''INSERT INTO pagamentos(pedido_id,metodo,provedor,status,valor_centavos)
                               VALUES (?, ?, ?, ?, ?)''', (order_id, 'a_combinar', 'demonstracao', 'pendente', total))
+                # Avisos internos transacionais; não envia SMS ou e-mail externo.
+                notify_new_order(db, order_id, logged['id'] if logged else None)
         except ValueError as exc:
             flash(request, str(exc), 'erro')
             return redirect('/carrinho')
@@ -677,6 +682,28 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                 components_by_line.setdefault(comp['pedido_item_id'], []).append(comp)
         return page(request, 'pedido.html', order=order, items=items, slot=slot,
                     components_by_line=components_by_line)
+
+    @app.get('/api/pedido/{token}/status')
+    def order_status_api(token: str):
+        # O token de alta entropia funciona como credencial da página de pedido.
+        # A API expõe somente status, ETA e eventos, nunca dados pessoais.
+        if not re.fullmatch(r'[A-Za-z0-9_-]{10,100}', token):
+            raise HTTPException(404, 'Pedido não encontrado.')
+        with db_connect() as db:
+            order = db.execute('SELECT id,status,previsao_entrega_em,agendado_para FROM pedidos WHERE token_acesso=?',
+                               (token,)).fetchone()
+            if not order:
+                raise HTTPException(404, 'Pedido não encontrado.')
+            events = db.execute('''SELECT status,ocorrido_em FROM eventos_pedido
+                         WHERE pedido_id=? ORDER BY id DESC LIMIT 12''', (order['id'],)).fetchall()
+        from fastapi.responses import JSONResponse
+        return JSONResponse({'status':order['status'],
+                             'status_nome': STATUS_LABELS[order['status']],
+                             'previsao_entrega_em':order['previsao_entrega_em'],
+                             'agendado_para':order['agendado_para'],
+                             'eventos':[{'status':r['status'],'data':r['ocorrido_em']} for r in events],
+                             'atualizacao':'consulta periódica de status (não é push)'},
+                            headers={'Cache-Control':'no-store'})
 
     @app.get('/conta/cadastrar', response_class=HTMLResponse)
     def register_form(request: Request):
@@ -827,7 +854,16 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             orders = db.execute('''SELECT p.*,o.descricao entrega FROM pedidos p
                 JOIN opcoes_entrega o ON o.id=p.opcao_entrega_id
                 WHERE p.usuario_id=? ORDER BY p.id DESC LIMIT 100''', (user['id'],)).fetchall()
-        return page(request, 'minha_conta.html', orders=orders, user=user)
+            alerts = user_notifications(db, user['id'])
+        return page(request, 'minha_conta.html', orders=orders, user=user, alerts=alerts)
+
+    @app.post('/minha-conta/notificacoes/ler')
+    async def customer_read_notifications(request: Request):
+        user = require_customer(request)
+        await valid_form(request)
+        with db_connect() as db:
+            mark_user_notifications_read(db, user['id'])
+        return redirect('/minha-conta')
 
     @app.post('/produto/{product_id}/avaliar')
     async def create_review(request: Request, product_id: int):
@@ -879,7 +915,7 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
 
     @app.get('/admin', response_class=HTMLResponse)
     def admin_home(request: Request):
-        admin_id(request)
+        admin_user=admin_id(request)
         with db_connect() as db:
             stats = {'pedidos': db.execute('SELECT COUNT(*) FROM pedidos').fetchone()[0],
                      'produtos': db.execute('SELECT COUNT(*) FROM cupcakes WHERE ativo=1').fetchone()[0],
@@ -889,6 +925,8 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             archived = db.execute('''SELECT id,nome,excluido_em FROM cupcakes WHERE excluido_em IS NOT NULL
                                      ORDER BY excluido_em DESC, id DESC LIMIT 100''').fetchall()
             orders = db.execute('SELECT * FROM pedidos ORDER BY id DESC LIMIT 6').fetchall()
+            stats['avisos'] = db.execute('''SELECT COUNT(*) FROM notificacoes WHERE usuario_id=?
+                              AND canal='app' AND status='pendente' ''',(admin_user,)).fetchone()[0]
         return page(request, 'admin.html', stats=stats, products=products, orders=orders, archived=archived)
 
     @app.get('/admin/produtos/novo', response_class=HTMLResponse)
@@ -1091,6 +1129,13 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         user_id = admin_id(request)
         form = await valid_form(request)
         target = str(form.get('status', '')).strip()
+        eta_raw = str(form.get('previsao_entrega', '')).strip()
+        eta_value = None
+        if eta_raw:
+            try:
+                eta_value = datetime.strptime(eta_raw, '%Y-%m-%dT%H:%M').isoformat(timespec='minutes')
+            except ValueError:
+                raise HTTPException(422, 'Previsão de entrega inválida.') from None
         with db_connect() as db:
             db.execute('BEGIN IMMEDIATE')
             order = db.execute('SELECT * FROM pedidos WHERE id=?', (order_id,)).fetchone()
@@ -1113,9 +1158,12 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                     db.execute('UPDATE cupcakes SET estoque=estoque+? WHERE id=?', (part['quantidade'],part['cupcake_id']))
                     db.execute('''INSERT INTO estoque_movimentos(cupcake_id,pedido_id,variacao,motivo)
                         VALUES (?,?,?,?)''',(part['cupcake_id'],order_id,part['quantidade'],'Combo cancelado'))
-            db.execute('UPDATE pedidos SET status=? WHERE id=?', (target, order_id))
+            db.execute('''UPDATE pedidos SET status=?,
+                          previsao_entrega_em=COALESCE(?,previsao_entrega_em) WHERE id=?''',
+                       (target, eta_value, order_id))
             db.execute('INSERT INTO eventos_pedido(pedido_id,status,observacao) VALUES (?,?,?)',
                        (order_id, target, 'Atualizado pela administração'))
+            notify_status_change(db, order_id, order['usuario_id'], target)
             db.execute('INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao) VALUES (?,?,?,?,?)',
                        (user_id, 'pedidos', order_id, 'alterar status', f'{order["status"]} -> {target}'))
         flash(request, 'Status do pedido atualizado.', 'sucesso')
@@ -1196,22 +1244,18 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         return redirect('/admin/avaliacoes')
 
     @app.get('/admin/relatorios', response_class=HTMLResponse)
-    def reports(request: Request, mes: str = ''):
+    def reports(request: Request, mes: str = '', categoria: str = ''):
         admin_id(request)
         if mes and not re.fullmatch(r'20\d\d-(0[1-9]|1[0-2])',mes):
             raise HTTPException(422, 'Mês inválido.')
-        condition = " AND strftime('%Y-%m',p.criado_em)=?" if mes else ''
-        params = (mes,) if mes else ()
-        with db_connect() as db:
-            overview = db.execute('''SELECT COUNT(*) pedidos,COALESCE(SUM(total_centavos),0) receita,
-                    COALESCE(SUM(desconto_centavos),0) descontos FROM pedidos p
-                    WHERE status<>'cancelado' ''' + condition, params).fetchone()
-            top = db.execute('''SELECT pi.nome_snapshot nome,SUM(pi.quantidade) unidades
-                    FROM pedido_itens pi JOIN pedidos p ON p.id=pi.pedido_id
-                    WHERE p.status<>'cancelado' '''+condition+''' GROUP BY pi.nome_snapshot
-                    ORDER BY unidades DESC LIMIT 10''',params).fetchall()
-            by_status = db.execute('SELECT status,COUNT(*) quantidade FROM pedidos GROUP BY status ORDER BY quantidade DESC').fetchall()
-        return page(request, 'admin_relatorios.html', overview=overview, top=top, by_status=by_status, mes=mes)
+        if categoria and (not categoria.isdigit() or len(categoria)>8):
+            raise HTTPException(422, 'Categoria inválida.')
+        try:
+            with db_connect() as db:
+                data = report_data(db, month=mes, category_id=int(categoria) if categoria else None)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        return page(request,'admin_relatorios.html', **data, mes=mes, categoria=categoria)
 
     @app.get('/admin/entregas', response_class=HTMLResponse)
     def deliveries_admin(request: Request):
@@ -1353,6 +1397,47 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             users = db.execute("SELECT id,nome,email,ativo,criado_em FROM usuarios WHERE papel='cliente' ORDER BY id DESC").fetchall()
         return page(request, 'admin_clientes.html', users=users)
 
+    @app.get('/admin/clientes/{user_id}/editar', response_class=HTMLResponse)
+    def admin_customer_edit(request: Request, user_id: int):
+        admin_id(request)
+        with db_connect() as db:
+            user = db.execute("SELECT id,nome,email,ativo FROM usuarios WHERE id=? AND papel='cliente'",(user_id,)).fetchone()
+            if not user: raise HTTPException(404,'Cliente não encontrado.')
+        return page(request,'admin_cliente_editar.html',user=user,error=None)
+
+    @app.post('/admin/clientes/{user_id}/salvar')
+    async def admin_customer_save(request: Request, user_id: int):
+        editor_id = admin_id(request)
+        form = await valid_form(request)
+        name = str(form.get('nome','')).strip()[:120]
+        email = str(form.get('email','')).strip().lower()[:200]
+        if len(name)<3 or not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+',email):
+            raise HTTPException(422,'Nome ou e-mail inválido.')
+        with db_connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            user = db.execute("SELECT id,nome,email,ativo FROM usuarios WHERE id=? AND papel='cliente'",(user_id,)).fetchone()
+            if user is None: raise HTTPException(404,'Cliente não encontrado.')
+            if db.execute('SELECT 1 FROM usuarios WHERE email=? AND id<>?',(email,user_id)).fetchone():
+                raise HTTPException(422,'E-mail já utilizado por outra conta.')
+            previous={'nome':user['nome'],'email':user['email']}
+            db.execute("UPDATE usuarios SET nome=?,email=? WHERE id=? AND papel='cliente'",(name,email,user_id))
+            detail=json.dumps({'antes':previous,'depois':{'nome':name,'email':email}},ensure_ascii=False)
+            db.execute('''INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao)
+                VALUES (?,'usuarios',?,'editar cadastro',?)''',(editor_id,user_id,detail))
+        flash(request,'Cadastro do cliente atualizado.','sucesso')
+        return redirect('/admin/clientes')
+
+    @app.get('/admin/clientes/{user_id}/historico', response_class=HTMLResponse)
+    def admin_customer_history(request: Request, user_id: int):
+        admin_id(request)
+        with db_connect() as db:
+            user=db.execute("SELECT id,nome,email FROM usuarios WHERE id=? AND papel='cliente'",(user_id,)).fetchone()
+            if user is None: raise HTTPException(404,'Cliente não encontrado.')
+            changes=db.execute('''SELECT a.acao,a.descricao,a.criado_em, u.nome autor
+                 FROM auditoria a LEFT JOIN usuarios u ON u.id=a.usuario_id
+                 WHERE a.entidade='usuarios' AND a.entidade_id=? ORDER BY a.id DESC LIMIT 100''',(user_id,)).fetchall()
+        return page(request,'admin_cliente_historico.html',user=user,changes=changes)
+
     @app.post('/admin/clientes/{user_id}/alternar')
     async def toggle_customer(request: Request, user_id: int):
         uid = admin_id(request)
@@ -1360,9 +1445,27 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         with db_connect() as db:
             user = db.execute("SELECT ativo FROM usuarios WHERE id=? AND papel='cliente'",(user_id,)).fetchone()
             if not user: raise HTTPException(404, 'Conta não encontrada.')
-            db.execute('UPDATE usuarios SET ativo=? WHERE id=?', (0 if user['ativo'] else 1,user_id))
-            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'usuarios',?,'alternar acesso')",(uid,user_id))
+            new_active=0 if user['ativo'] else 1
+            db.execute('UPDATE usuarios SET ativo=? WHERE id=?', (new_active,user_id))
+            db.execute('''INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao)
+                        VALUES (?,'usuarios',?,'alternar acesso',?)''',
+                       (uid,user_id,f"ativo: {user['ativo']} -> {new_active}"))
         return redirect('/admin/clientes')
+
+    @app.get('/admin/notificacoes', response_class=HTMLResponse)
+    def admin_notifications(request: Request):
+        admin_user=admin_id(request)
+        with db_connect() as db:
+            alerts=user_notifications(db,admin_user,limit=100)
+        return page(request,'admin_notificacoes.html',alerts=alerts)
+
+    @app.post('/admin/notificacoes/ler')
+    async def admin_read_notifications(request: Request):
+        admin_user=admin_id(request)
+        await valid_form(request)
+        with db_connect() as db:
+            mark_user_notifications_read(db,admin_user)
+        return redirect('/admin/notificacoes')
 
     @app.get('/saude')
     def health():

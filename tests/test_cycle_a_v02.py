@@ -19,14 +19,14 @@ def test_migracao_preserva_banco_ja_existente(tmp_path, monkeypatch):
     database = tmp_path / 'legado.db'
     create_app(database, testing=True)
     with sqlite3.connect(database) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 5
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 6
         assert db.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchone()[0] == 26
         db.execute("UPDATE cupcakes SET estoque=7 WHERE id=1")
         db.execute('PRAGMA user_version = 0')
         db.execute('DROP INDEX idx_catalogo_ativo_estoque_categoria')
     create_app(database, testing=True)
     with sqlite3.connect(database) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 5
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 6
         assert db.execute('SELECT estoque FROM cupcakes WHERE id=1').fetchone()[0] == 7
         assert db.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchone()[0] == 26
         assert db.execute("SELECT 1 FROM sqlite_master WHERE name='idx_catalogo_ativo_estoque_categoria'").fetchone()

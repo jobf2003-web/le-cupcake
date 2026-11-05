@@ -52,6 +52,11 @@ MIGRATIONS: dict[int, tuple[str, ...]] = {
         )""",
         'CREATE INDEX IF NOT EXISTS idx_reset_user_created ON password_reset_tokens(usuario_id,criado_em)',
     ),
+    6: (
+        'ALTER TABLE pedidos ADD COLUMN previsao_entrega_em TEXT',
+        'CREATE INDEX IF NOT EXISTS idx_notificacoes_fila_app ON notificacoes(usuario_id,canal,status,id)',
+        'CREATE INDEX IF NOT EXISTS idx_eventos_pedido_id ON eventos_pedido(pedido_id,id)',
+    ),
 }
 
 

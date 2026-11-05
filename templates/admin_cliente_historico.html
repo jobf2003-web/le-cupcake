@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Histórico do cliente{% endblock %}
+{% block content %}
+<div class="container inner-page admin-page"><a class="breadcrumb" href="/admin/clientes">← Clientes</a>
+<div class="page-header"><h1>Histórico administrativo</h1><p>Cliente: {{ user.nome }}. Eventos de edição e bloqueio da conta.</p></div>
+<div class="responsive-table"><table><thead><tr><th>Data</th><th>Administrador</th><th>Ação</th><th>Alteração</th></tr></thead><tbody>
+{% for change in changes %}<tr><td>{{ change.criado_em }}</td><td>{{ change.autor or 'Não identificado' }}</td><td>{{ change.acao }}</td><td><pre class="audit-detail">{{ change.descricao or 'Sem detalhes adicionais' }}</pre></td></tr>
+{% else %}<tr><td colspan="4">Sem alterações registradas.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

@@ -105,7 +105,6 @@ tr:last-child td {border:0}
 .report-section-title{margin:38px 0 15px}.check-inline{display:flex;align-items:center;gap:10px;font-weight:600}.section-actions{margin-top:16px}
 @media(max-width:760px){.recommendation-grid{grid-template-columns:1fr}.admin-links a{flex:1;text-align:center}}
 
-
 /* Le Cupcake v0.6 — melhorias de navegação, responsividade e acessibilidade. */
 .skip-link {
   position:fixed; z-index:100; top:10px; left:12px; transform:translateY(-160%);
@@ -147,3 +146,22 @@ tr:last-child td {border:0}
 
 /* Respeitar controles HTML ocultos nas atualizações dinâmicas. */
 [hidden] { display: none !important; }
+/* Le Cupcake PIT II 0.2 — Ciclo D: avisos internos, relatórios e histórico de pedidos */
+.notice-section{padding:24px 0;margin-bottom:30px;border-bottom:1px solid var(--line)}
+.notice-section h2,.order-timeline h2{font-size:1.4rem;margin:18px 0}
+.notice-list{list-style:none;padding:0;margin:18px 0 24px;display:grid;gap:10px}
+.notice-item{padding:12px 16px;background:#fffdf9;border:1px solid var(--line);border-radius:10px}
+.notice-item p{margin:0 0 6px}.notice-item small{color:var(--muted)}
+.notice-unread{border-left:5px solid #3D634D;background:#edf4e9}
+.order-timeline{margin:25px 0;text-align:left}.order-timeline ol{padding-left:26px}
+.order-timeline li{padding:7px 3px}.status-eta-label{display:flex;flex-direction:column;gap:3px;font-size:.72rem}
+.status-form{align-items:end;flex-wrap:wrap}.status-eta-label input{max-width:190px;padding:5px}
+.report-filters{gap:10px}.report-filters select{background:white;border:1px solid var(--line);padding:12px;border-radius:8px}
+.report-toggle{display:flex;gap:7px;flex-wrap:wrap}.report-bars{padding:15px 20px;border:1px solid var(--line);border-radius:13px;background:#fffef9;margin:14px 0 35px}
+.report-bar-row{display:grid;grid-template-columns:88px 1fr 105px;gap:10px;align-items:center;margin:9px 0}
+.report-bar-track{background:#e8ecdf;border-radius:12px;min-height:20px;overflow:hidden}
+.report-bar-fill{display:block;height:20px;border-radius:12px;background:#3D634D;transition:width .2s ease}
+.report-bar-label,.report-bar-value{font-variant-numeric:tabular-nums;font-size:.8rem}.report-bar-value{text-align:right}
+.audit-detail{font:inherit;font-size:.75rem;white-space:pre-wrap;overflow-wrap:anywhere;max-width:470px}
+@media(max-width:650px){.report-bar-row{grid-template-columns:60px 1fr 80px;gap:6px}.report-bars{padding:12px}.report-filters select{width:100%}}
+@media(prefers-reduced-motion:reduce){.report-bar-fill{transition:none}}

@@ -192,4 +192,60 @@
       updateCatalog();
     });
   }
+
+  // US-06/19: consulta de estado sem expor informações pessoais no endpoint.
+  const orderTracking = document.querySelector('#pedido-acompanhamento');
+  if (orderTracking) {
+    const token = orderTracking.dataset.orderToken;
+    const statusTarget = document.querySelector('#pedido-status-atual');
+    const etaTarget = document.querySelector('#pedido-previsao');
+    const timeline = document.querySelector('#pedido-eventos');
+    const freshness = document.querySelector('#pedido-atualizacao');
+    async function refreshOrder() {
+      if (document.hidden) return;
+      try {
+        const response = await fetch('/api/pedido/' + encodeURIComponent(token) + '/status', { cache:'no-store' });
+        if (!response.ok) throw new Error('Falha na atualização');
+        const data = await response.json();
+        if (statusTarget) statusTarget.textContent = data.status_nome;
+        if (etaTarget) etaTarget.textContent = data.previsao_entrega_em || 'Ainda não informada';
+        if (timeline) {
+          timeline.replaceChildren();
+          for (const event of data.eventos) {
+            const li = document.createElement('li');
+            li.textContent = event.data + ' — ' + event.status;
+            timeline.appendChild(li);
+          }
+        }
+        if (freshness) freshness.textContent = 'Consulta atualizada dentro do site. O envio por e-mail/SMS não está habilitado.';
+      } catch (error) {
+        if (freshness) freshness.textContent = 'Não foi possível atualizar o pedido. Tente novamente mais tarde.';
+      }
+    }
+    refreshOrder();
+    const tick = setInterval(refreshOrder, 15000);
+    window.addEventListener('pagehide', function () { clearInterval(tick); }, { once:true });
+  }
+
+  // US-18: alternância acessível entre unidades e valor bruto nos gráficos locais.
+  const chart = document.querySelector('#report-bars');
+  if (chart) {
+    const units = document.querySelector('#report-show-units');
+    const amount = document.querySelector('#report-show-value');
+    function asMoney(value) { return asCurrency(value); }
+    function showMetric(type) {
+      chart.querySelectorAll('.report-bar-row').forEach(function (row) {
+        const value = Number(type === 'units' ? row.dataset.units : row.dataset.amount);
+        const max = Number(type === 'units' ? row.dataset.maxUnits : row.dataset.maxAmount);
+        const fill = row.querySelector('.report-bar-fill');
+        const label = row.querySelector('.report-bar-value');
+        if (fill) fill.style.width = max ? (value * 100 / max) + '%' : '0%';
+        if (label) label.textContent = type === 'units' ? value + ' un.' : asMoney(value);
+      });
+      if (units) { units.setAttribute('aria-pressed', String(type==='units')); units.classList.toggle('btn-primary',type==='units'); units.classList.toggle('btn-outline',type!=='units'); }
+      if (amount) { amount.setAttribute('aria-pressed', String(type==='amount')); amount.classList.toggle('btn-primary',type==='amount'); amount.classList.toggle('btn-outline',type!=='amount'); }
+    }
+    if (units) units.addEventListener('click',function(){showMetric('units');});
+    if (amount) amount.addEventListener('click',function(){showMetric('amount');});
+  }
 })();

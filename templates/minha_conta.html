@@ -1,3 +1,10 @@
 {% extends 'base.html' %}
 {% block title %}Meus pedidos{% endblock %}
-{% block content %}<div class="container inner-page"><div class="page-header"><span class="eyebrow">MINHA CONTA</span><h1>Olá, {{ user.nome }}</h1><p>Seus pedidos registrados nesta conta.</p></div><div class="responsive-table"><table><thead><tr><th>Pedido</th><th>Data</th><th>Entrega</th><th>Total</th><th>Status</th><th>Detalhes</th></tr></thead><tbody>{% for o in orders %}<tr><td>#{{ o.id }}</td><td>{{ o.criado_em }}</td><td>{{ o.entrega }}</td><td>{{ o.total_centavos|reais }}</td><td><span class="tag">{{ o.status|status_nome }}</span></td><td><a href="/pedido/{{ o.token_acesso }}">Acompanhar</a></td></tr>{% else %}<tr><td colspan="6">Ainda não há pedidos nesta conta. <a href="/">Ver cardápio</a></td></tr>{% endfor %}</tbody></table></div></div>{% endblock %}
+{% block content %}<div class="container inner-page"><div class="page-header"><span class="eyebrow">MINHA CONTA</span><h1>Olá, {{ user.nome }}</h1><p>Seus pedidos registrados nesta conta.</p></div><section class="notice-section"><h2>Avisos sobre seus pedidos</h2>
+<p class="tiny-note">Notificações dentro do site. Não são enviadas por SMS ou e-mail.</p>
+{% if alerts %}<form action="/minha-conta/notificacoes/ler" method="post">
+<input type="hidden" name="_csrf" value="{{ csrf }}"><button type="submit" class="btn btn-outline btn-small">Marcar como lidos</button></form>{% endif %}
+<ul class="notice-list">{% for notice in alerts %}<li class="notice-item {% if notice.status == 'pendente' %}notice-unread{% endif %}">
+<p>{{ notice.conteudo }}</p><small>{{ notice.criado_em }} · {{ 'Novo' if notice.status == 'pendente' else 'Lido' }}</small>
+</li>{% else %}<li>Nenhum aviso registrado.</li>{% endfor %}</ul></section>
+<div class="responsive-table"><table><thead><tr><th>Pedido</th><th>Data</th><th>Entrega</th><th>Total</th><th>Status</th><th>Detalhes</th></tr></thead><tbody>{% for o in orders %}<tr><td>#{{ o.id }}</td><td>{{ o.criado_em }}</td><td>{{ o.entrega }}</td><td>{{ o.total_centavos|reais }}</td><td><span class="tag">{{ o.status|status_nome }}</span></td><td><a href="/pedido/{{ o.token_acesso }}">Acompanhar</a></td></tr>{% else %}<tr><td colspan="6">Ainda não há pedidos nesta conta. <a href="/">Ver cardápio</a></td></tr>{% endfor %}</tbody></table></div></div>{% endblock %}

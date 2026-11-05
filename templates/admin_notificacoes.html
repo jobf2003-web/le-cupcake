@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Avisos administrativos{% endblock %}
+{% block content %}
+<div class="container inner-page admin-page"><a class="breadcrumb" href="/admin">← Painel</a>
+<div class="page-header"><h1>Avisos internos da loja</h1><p>Novos pedidos aparecem aqui. Não há envio de SMS/e-mail externo neste modo gratuito.</p></div>
+{% if alerts %}<form action="/admin/notificacoes/ler" method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn-outline" type="submit">Marcar todos como lidos</button></form>{% endif %}
+<ul class="notice-list">
+{% for notice in alerts %}<li class="notice-item {% if notice.status == 'pendente' %}notice-unread{% endif %}">
+  <p>{{ notice.conteudo }}</p><small>{{ notice.criado_em }} · {{ 'Novo' if notice.status == 'pendente' else 'Lido' }}</small>
+  {% if notice.pedido_id %}<a href="/admin/pedidos">Ver pedido #{{ notice.pedido_id }}</a>{% endif %}</li>
+{% else %}<li>Nenhum aviso interno registrado.</li>{% endfor %}
+</ul></div>
+{% endblock %}
