@@ -1,6 +1,6 @@
 # Etapa 1 — Plano de testes de aceitação das 25 histórias (antes da implementação)
 
-**Fonte:** PIT I original: critérios de aceitação (CA), regras de negócio (RN) e requisitos não funcionais (RNF). **Estado deste plano:** TODOS os testes abaixo são **a executar**. Os 30 testes técnicos preexistentes não são prova suficiente da conformidade completa das histórias.
+**Fonte:** PIT I original: critérios de aceitação (CA), regras de negócio (RN) e requisitos não funcionais (RNF). **Estado deste plano:** TODOS os testes abaixo são **a executar**. Os testes de regressão usados como referência inicial não são prova suficiente da conformidade completa das histórias. O resultado global posterior da versão 0.2 deve ser consultado no Ciclo F.
 
 ## Roteiros e provas esperadas
 
