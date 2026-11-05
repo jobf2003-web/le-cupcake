@@ -17,6 +17,7 @@ import sqlite3
 from typing import Any
 
 from photo_sources import PHOTOS, PRODUCT_PHOTO_KEYS, ALLOWED_PHOTO_URLS
+from migrations import apply_migrations
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -30,9 +31,9 @@ STATUS = ['recebido', 'confirmado', 'preparo', 'pronto', 'em_entrega', 'concluid
 NEXT_STATUS = {
     'recebido': ['confirmado', 'cancelado'],
     'confirmado': ['preparo', 'cancelado'],
-    'preparo': ['pronto', 'cancelado'],
-    'pronto': ['em_entrega', 'concluido', 'cancelado'],
-    'em_entrega': ['concluido', 'cancelado'],
+    'preparo': ['pronto'],
+    'pronto': ['em_entrega', 'concluido'],
+    'em_entrega': ['concluido'],
     'concluido': [], 'cancelado': [],
 }
 SAMPLE_PRODUCTS = [
@@ -136,6 +137,7 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         with db_connect() as db:
             db.executescript((ROOT / 'schema.sql').read_text(encoding='utf-8')) if not db.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='usuarios'").fetchone() else None
+            apply_migrations(db)  # Opera tanto em banco novo quanto em banco legado.
             if not db.execute('SELECT 1 FROM categorias LIMIT 1').fetchone():
                 for category in ('Clássicos', 'Frutados', 'Especiais', 'Veganos'):
                     db.execute('INSERT INTO categorias (nome) VALUES (?)', (category,))
@@ -283,24 +285,43 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                     message=str(exc.detail))
 
 
-    @app.get('/', response_class=HTMLResponse)
-    def home(request: Request, busca: str = '', categoria: str = ''):
+    def select_catalog(busca: str = '', categoria: str = ''):
+        """Mesma consulta para a vitrine HTML e os resultados sem recarga."""
         search = busca.strip()[:80]
+        category = categoria.strip()[:80]
         params: list[Any] = []
         sql = '''SELECT c.*, k.nome categoria FROM cupcakes c JOIN categorias k ON k.id=c.categoria_id
                  WHERE c.ativo=1 AND k.ativa=1'''
         if search:
             sql += ' AND (LOWER(c.nome) LIKE ? OR LOWER(c.descricao) LIKE ?)'
             params += [f'%{search.lower()}%', f'%{search.lower()}%']
-        if categoria:
+        if category:
             sql += ' AND k.nome=?'
-            params.append(categoria)
+            params.append(category)
+        # A vitrine geral sinaliza esgotados, mas filtros exibem apenas disponíveis.
+        if search or category:
+            sql += ' AND c.estoque > 0'
         sql += ' ORDER BY c.id'
         with db_connect() as db:
             products = db.execute(sql, params).fetchall()
+        return products, search, category
+
+    @app.get('/', response_class=HTMLResponse)
+    def home(request: Request, busca: str = '', categoria: str = ''):
+        products, search, category = select_catalog(busca, categoria)
+        with db_connect() as db:
             categories = db.execute('SELECT nome FROM categorias WHERE ativa=1 ORDER BY id').fetchall()
         return page(request, 'index.html', products=products, categories=categories,
-                    busca=search, categoria=categoria)
+                    busca=search, categoria=category)
+
+    @app.get('/catalogo/resultados', response_class=HTMLResponse)
+    def catalog_partial(request: Request, busca: str = '', categoria: str = ''):
+        """Fragmento HTML escapado pelo Jinja2 para atualização progressiva do catálogo."""
+        products, _, _ = select_catalog(busca, categoria)
+        return templates.TemplateResponse(
+            request, 'catalogo_resultados.html', {'products': products, 'csrf': csrf(request)},
+            headers={'X-Total-Results': str(len(products)), 'Cache-Control': 'no-store'},
+        )
 
     @app.get('/produto/{product_id}', response_class=HTMLResponse)
     def product_detail(request: Request, product_id: int):
