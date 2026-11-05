@@ -160,5 +160,5 @@ def test_api_quote_and_calendar_do_not_modify_orders(state):
         buyer.get('/checkout')
     with sqlite3.connect(path) as db:
         assert db.execute('SELECT COUNT(*) FROM pedidos').fetchone()[0]==0
-        assert db.execute('PRAGMA user_version').fetchone()[0]==6
+        assert db.execute('PRAGMA user_version').fetchone()[0]==7
         assert db.execute('PRAGMA foreign_key_check').fetchall()==[]

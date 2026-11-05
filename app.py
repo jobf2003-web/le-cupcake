@@ -24,6 +24,9 @@ from migrations import apply_migrations
 from order_notifications import (notify_new_order,notify_status_change,user_notifications,
                                  mark_user_notifications_read,STATUS_LABELS)
 from sales_reporting import report_data
+from payment_demo import (PAYMENT_METHODS, DEMO_METHODS, payment_label,
+                          validate_payment_method, simulate_decision,
+                          restore_order_stock, log_payment_event)
 from customer_relationship import send_password_reset_email, make_reset_digest, get_recommendations, active_promotions, valid_dates
 
 from fastapi import FastAPI, HTTPException, Request
@@ -539,7 +542,8 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         user = current_customer(request)
         return page(request, 'checkout.html', lines=lines, combos=combo_lines, subtotal=subtotal, shipping=shipping,
                     windows=windows, region_count=region_count,
-                    values={'nome':user['nome'],'email':user['email']} if user else {}, errors=[])
+                    values={'nome':user['nome'],'email':user['email']} if user else {}, errors=[],
+                    payment_methods=PAYMENT_METHODS)
 
     @app.post('/checkout')
     async def place_order(request: Request):
@@ -550,6 +554,7 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         phone = str(form.get('telefone', '')).strip()[:30]
         address = str(form.get('endereco', '')).strip()[:400]
         coupon_code = str(form.get('cupom', '')).strip().upper()[:30]
+        payment_method = str(form.get('metodo_pagamento', 'a_combinar')).strip()[:40]
         cep = str(form.get('cep', '')).strip()[:12]
         scheduled_for = str(form.get('data_agendada', '')).strip()[:30]
         try:
@@ -561,6 +566,10 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         except (ValueError, TypeError):
             shipping_id = 0
         errors = []
+        try:
+            validate_payment_method(payment_method)
+        except ValueError as exc:
+            errors.append(str(exc))
         if len(name) < 3:
             errors.append('Informe seu nome completo.')
         if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email):
@@ -598,7 +607,7 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         if errors:
             return page(request, 'checkout.html', status_code=422, lines=lines, combos=combo_lines,
                         subtotal=subtotal, shipping=shipping, windows=windows, region_count=region_count,
-                        values=dict(form), errors=errors)
+                        values=dict(form), errors=errors, payment_methods=PAYMENT_METHODS)
         token = secrets.token_urlsafe(24)
         try:
             with db_connect() as db:
@@ -653,7 +662,10 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                 db.execute('INSERT INTO eventos_pedido(pedido_id,status,observacao) VALUES (?, ?, ?)',
                            (order_id, 'recebido', 'Pedido registrado pelo site'))
                 db.execute('''INSERT INTO pagamentos(pedido_id,metodo,provedor,status,valor_centavos)
-                              VALUES (?, ?, ?, ?, ?)''', (order_id, 'a_combinar', 'demonstracao', 'pendente', total))
+                              VALUES (?, ?, ?, ?, ?)''',
+                           (order_id, payment_method,
+                            'simulador_local' if payment_method in DEMO_METHODS else 'pagamento_posterior',
+                            'pendente', total))
                 # Avisos internos transacionais; não envia SMS ou e-mail externo.
                 notify_new_order(db, order_id, logged['id'] if logged else None)
         except ValueError as exc:
@@ -673,6 +685,8 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                                (token,)).fetchone()
             if not order:
                 raise HTTPException(404, 'Pedido não encontrado.')
+            payment = db.execute('''SELECT * FROM pagamentos WHERE pedido_id=? ORDER BY id DESC LIMIT 1''',
+                                 (order['id'],)).fetchone()
             items = db.execute('SELECT * FROM pedido_itens WHERE pedido_id=?', (order['id'],)).fetchall()
             slot = db.execute('SELECT inicio,fim FROM janelas_entrega WHERE id=?', (order['janela_entrega_id'],)).fetchone() if order['janela_entrega_id'] else None
             components = db.execute('''SELECT pc.pedido_item_id,pc.nome_snapshot,pc.quantidade FROM pedido_combo_componentes pc
@@ -681,7 +695,35 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             for comp in components:
                 components_by_line.setdefault(comp['pedido_item_id'], []).append(comp)
         return page(request, 'pedido.html', order=order, items=items, slot=slot,
-                    components_by_line=components_by_line)
+                    payment=payment, payment_label=payment_label,
+                    components_by_line=components_by_line, demo_methods=DEMO_METHODS)
+
+    @app.post('/pedido/{token}/simular-pagamento')
+    async def simulate_payment_request(request: Request, token: str):
+        # Token secreto do pedido + CSRF. A ação NÃO envolve dinheiro ou gateway.
+        await valid_form(request)
+        if not re.fullmatch(r'[A-Za-z0-9_-]{10,100}', token):
+            raise HTTPException(404, 'Pedido não encontrado.')
+        form = await request.form()
+        decision = str(form.get('decisao','')).strip()
+        with db_connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            order = db.execute('SELECT id,usuario_id FROM pedidos WHERE token_acesso=?', (token,)).fetchone()
+            if not order:
+                raise HTTPException(404, 'Pedido não encontrado.')
+            try:
+                status, changed = simulate_decision(db, order_id=order['id'], decision=decision)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
+            if changed:
+                if status == 'recusado':
+                    notify_status_change(db, order['id'], order['usuario_id'], 'cancelado')
+                db.execute('''INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao)
+                              VALUES (NULL,'pagamentos',?,'simulacao',?)''',
+                           (order['id'], f'{decision}: sem cobrança real'))
+        flash(request, ('Aprovação simulada registrada — nenhuma cobrança realizada.' if status == 'aprovado'
+                        else 'Recusa simulada: pedido cancelado e estoque devolvido.'), 'info')
+        return redirect('/pedido/'+token)
 
     @app.get('/api/pedido/{token}/status')
     def order_status_api(token: str):
@@ -694,6 +736,8 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                                (token,)).fetchone()
             if not order:
                 raise HTTPException(404, 'Pedido não encontrado.')
+            payment = db.execute('''SELECT metodo,status,provedor FROM pagamentos WHERE pedido_id=?
+                                     ORDER BY id DESC LIMIT 1''', (order['id'],)).fetchone()
             events = db.execute('''SELECT status,ocorrido_em FROM eventos_pedido
                          WHERE pedido_id=? ORDER BY id DESC LIMIT 12''', (order['id'],)).fetchall()
         from fastapi.responses import JSONResponse
@@ -702,6 +746,8 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                              'previsao_entrega_em':order['previsao_entrega_em'],
                              'agendado_para':order['agendado_para'],
                              'eventos':[{'status':r['status'],'data':r['ocorrido_em']} for r in events],
+                             'pagamento': {'tipo':payment['metodo'], 'status':payment['status'],
+                                           'demonstrativo':payment['provedor']=='simulador_local'} if payment else None,
                              'atualizacao':'consulta periódica de status (não é push)'},
                             headers={'Cache-Control':'no-store'})
 
@@ -1118,9 +1164,11 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
     def admin_orders(request: Request):
         admin_id(request)
         with db_connect() as db:
-            orders = db.execute('''SELECT p.*, o.descricao entrega, j.inicio janela_inicio, j.fim janela_fim
+            orders = db.execute('''SELECT p.*, o.descricao entrega, j.inicio janela_inicio, j.fim janela_fim,
+                              pg.metodo metodo_pagamento, pg.status status_pagamento
                        FROM pedidos p JOIN opcoes_entrega o ON o.id=p.opcao_entrega_id
                        LEFT JOIN janelas_entrega j ON j.id=p.janela_entrega_id
+                       LEFT JOIN pagamentos pg ON pg.id=(SELECT MAX(id) FROM pagamentos WHERE pedido_id=p.id)
                        ORDER BY p.id DESC LIMIT 150''').fetchall()
         return page(request, 'admin_pedidos.html', orders=orders, next_status=NEXT_STATUS)
 
@@ -1143,21 +1191,16 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                 raise HTTPException(404, 'Pedido não encontrado.')
             if target not in NEXT_STATUS.get(order['status'], []):
                 raise HTTPException(422, 'Mudança de status não permitida.')
+            payment = db.execute('''SELECT * FROM pagamentos WHERE pedido_id=? ORDER BY id DESC LIMIT 1''',
+                                 (order_id,)).fetchone()
+            if target == 'confirmado' and payment and payment['metodo'] in DEMO_METHODS and payment['status'] != 'aprovado':
+                raise HTTPException(422, 'O pagamento demonstrativo precisa ser aprovado na simulação antes da confirmação do pedido.')
             if target == 'cancelado':
-                items = db.execute('SELECT cupcake_id,quantidade FROM pedido_itens WHERE pedido_id=?', (order_id,)).fetchall()
-                # Um cupom de uso limitado volta a ficar disponível se o pedido for cancelado.
-                db.execute('DELETE FROM cupom_utilizacoes WHERE pedido_id=?', (order_id,))
-                for item in items:
-                    if item['cupcake_id'] is not None:
-                        db.execute('UPDATE cupcakes SET estoque=estoque+? WHERE id=?', (item['quantidade'], item['cupcake_id']))
-                        db.execute('INSERT INTO estoque_movimentos(cupcake_id,pedido_id,variacao,motivo) VALUES (?,?,?,?)',
-                                   (item['cupcake_id'], order_id, item['quantidade'], 'Pedido cancelado'))
-                parts = db.execute('''SELECT pc.cupcake_id,pc.quantidade FROM pedido_combo_componentes pc
-                        JOIN pedido_itens i ON i.id=pc.pedido_item_id WHERE i.pedido_id=?''',(order_id,)).fetchall()
-                for part in parts:
-                    db.execute('UPDATE cupcakes SET estoque=estoque+? WHERE id=?', (part['quantidade'],part['cupcake_id']))
-                    db.execute('''INSERT INTO estoque_movimentos(cupcake_id,pedido_id,variacao,motivo)
-                        VALUES (?,?,?,?)''',(part['cupcake_id'],order_id,part['quantidade'],'Combo cancelado'))
+                restore_order_stock(db, order_id)
+                if payment and payment['metodo'] in DEMO_METHODS and payment['status']=='aprovado':
+                    db.execute("UPDATE pagamentos SET status='estornado',atualizado_em=CURRENT_TIMESTAMP WHERE id=?",
+                               (payment['id'],))
+                    log_payment_event(db, payment['id'], 'aprovado', 'estornado', 'cancelamento_administrativo_simulado')
             db.execute('''UPDATE pedidos SET status=?,
                           previsao_entrega_em=COALESCE(?,previsao_entrega_em) WHERE id=?''',
                        (target, eta_value, order_id))

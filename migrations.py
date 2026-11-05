@@ -57,6 +57,18 @@ MIGRATIONS: dict[int, tuple[str, ...]] = {
         'CREATE INDEX IF NOT EXISTS idx_notificacoes_fila_app ON notificacoes(usuario_id,canal,status,id)',
         'CREATE INDEX IF NOT EXISTS idx_eventos_pedido_id ON eventos_pedido(pedido_id,id)',
     ),
+    7: (
+        """CREATE TABLE IF NOT EXISTS pagamento_eventos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pagamento_id INTEGER NOT NULL REFERENCES pagamentos(id),
+            status_anterior TEXT NOT NULL,
+            status_novo TEXT NOT NULL,
+            origem TEXT NOT NULL,
+            criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )""",
+        'CREATE INDEX IF NOT EXISTS idx_pagamento_eventos_pagamento ON pagamento_eventos(pagamento_id,id)',
+        'CREATE INDEX IF NOT EXISTS idx_pagamentos_pedido_status ON pagamentos(pedido_id,status)',
+    ),
 }
 
 

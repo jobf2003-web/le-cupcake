@@ -154,7 +154,7 @@ def test_migration_v1_to_v2_preserves_legacy_rows(tmp_path,monkeypatch):
         db.execute('PRAGMA user_version=1')
     create_app(path,testing=True)
     with sqlite3.connect(path) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0]==6
+        assert db.execute('PRAGMA user_version').fetchone()[0]==7
         assert db.execute("SELECT nome,excluido_em FROM cupcakes WHERE id=1").fetchone()==('Cupcake Histórico',None)
         assert db.execute('PRAGMA foreign_key_check').fetchall()==[]
     create_app(path,testing=True)
@@ -168,5 +168,5 @@ def test_old_migration_with_reset_version_is_idempotent(tmp_path):
         db.execute('DROP INDEX idx_catalogo_ativo_estoque_categoria')
     create_app(path,testing=True)
     with sqlite3.connect(path) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0]==6
+        assert db.execute('PRAGMA user_version').fetchone()[0]==7
         assert db.execute('SELECT COUNT(*) FROM cupcakes').fetchone()[0]==8

@@ -165,3 +165,10 @@ tr:last-child td {border:0}
 .audit-detail{font:inherit;font-size:.75rem;white-space:pre-wrap;overflow-wrap:anywhere;max-width:470px}
 @media(max-width:650px){.report-bar-row{grid-template-columns:60px 1fr 80px;gap:6px}.report-bars{padding:12px}.report-filters select{width:100%}}
 @media(prefers-reduced-motion:reduce){.report-bar-fill{transition:none}}
+
+/* PIT II, Ciclo E: etiqueta transparente para pagamento demonstrativo */
+.payment-methods{border:1px solid var(--line,#d7d1c8);border-radius:12px;padding:1rem;margin:1rem 0}
+.payment-choice{display:flex;align-items:center;gap:.65rem;padding:.55rem 0;cursor:pointer}
+.payment-status-panel{margin:1.25rem 0;padding:1rem;border:1px solid var(--line,#d7d1c8);border-radius:12px}
+.payment-demo-actions{display:flex;flex-wrap:wrap;gap:.65rem;margin:.75rem 0}
+.payment-demo-actions form{margin:0}

@@ -60,7 +60,7 @@ def test_schema_v6_is_idempotent_and_keeps_orders(clients):
     add(buyer)
     assert checkout(buyer).status_code==303
     with sqlite3.connect(db) as con:
-        assert con.execute('PRAGMA user_version').fetchone()[0]==6
+        assert con.execute('PRAGMA user_version').fetchone()[0]==7
         assert 'previsao_entrega_em' in {x[1] for x in con.execute('PRAGMA table_info(pedidos)')}
         before=con.execute('SELECT id,total_centavos FROM pedidos').fetchall()
     create_app(db,testing=True)

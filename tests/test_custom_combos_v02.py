@@ -137,7 +137,7 @@ def test_combo_price_reflects_current_product_price(ctx):
 def test_combo_v4_schema_and_no_duplicate_seed(ctx):
     _,_,path=ctx
     with sqlite3.connect(path) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0]==6
+        assert db.execute('PRAGMA user_version').fetchone()[0]==7
         assert db.execute('SELECT COUNT(*) FROM combos WHERE nome="Combo personalizado"').fetchone()[0]==1
         assert db.execute('PRAGMA foreign_key_check').fetchall()==[]
     create_app(path,testing=True)
