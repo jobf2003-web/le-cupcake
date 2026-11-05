@@ -1,6 +1,6 @@
 # Le Cupcake — Projeto Integrador Transdisciplinar em Engenharia de Software II
 
-**Versão documental atual: 0.2 consolidada em desenvolvimento, ainda não publicada no Render.** O repositório `main` e o primeiro vídeo mostram a implementação anterior. A branch `pit-ii-25-historias-completas` contém a evolução posterior às cinco avaliações e à revisão integral das 25 histórias da PIT I. Não foi criada uma versão acadêmica 0.3.
+**Versão 0.2 em desenvolvimento, ainda não publicada no Render.** O repositório `main` e o primeiro vídeo mostram a implementação anterior. A branch `pit-ii-25-historias-completas` contém a evolução posterior às cinco avaliações e à revisão integral das 25 histórias da PIT I.
 
 O projeto é uma **loja virtual fictícia**, sem processamento de pagamentos reais, entregas físicas, serviço de SMS/e-mail para andamento de pedidos ou garantias de persistência em hospedagem gratuita. Não use dados pessoais verdadeiros no protótipo.
 
@@ -54,8 +54,8 @@ A cópia local do Ciclo E passou em **93 testes automatizados**; a checagem de e
 - [Testes técnicos](docs/Testes_Tecnicos.md).
 - [Checklist real de homologação](docs/Checklist_Entrega_PIT_II.md).
 - [Cinco avaliações históricas em PDF](docs/Cinco_Fichas_Avaliacao_ABNT.pdf), mantidas sem alteração.
-- [Laudo anterior em PDF](docs/Laudo_de_Qualidade_Final_ABNT.pdf), **histórico; não é laudo final da versão 0.2 ampliada**.
-- [Formulário oficial preenchido anteriormente](docs/PIT_atividade_Le_Cupcake_Preenchida.docx), **histórico; revisar e atualizar após a publicação**.
+- **Laudo de qualidade da versão 0.2:** preparar o documento atualizado a partir da implementação e dos testes da branch, incluindo as evidências locais e os limites reais. A publicação do DOCX/PDF definitivo no repositório ainda está pendente.
+- **Formulário oficial da PIT II:** atualizar os campos técnicos para a versão 0.2, manter as cinco avaliações intactas e inserir o segundo vídeo após a sua gravação.
 - [Fontes das fotografias](docs/Referencias_Fotograficas_Simplificadas.docx). A publicação deve observar atribuições CC BY/CC BY-SA.
 
 **Link atual do site público (versão anterior):** https://le-cupcake.onrender.com/. **Não confundir com a branch de desenvolvimento.**
