@@ -1,163 +1,67 @@
-# Le Cupcake — loja virtual de cupcakes (PIT II)
+# Le Cupcake — Projeto Integrador Transdisciplinar em Engenharia de Software II
 
-**Versão:** 0.2 — protótipo acadêmico funcional ampliado. A marca e os produtos são **fictícios**. O sistema **não cobra pagamentos reais** nem envia e-mails/SMS.
+**Versão documental atual: 0.2 consolidada em desenvolvimento, ainda não publicada no Render.** O repositório `main` e o primeiro vídeo mostram a implementação anterior. A branch `pit-ii-25-historias-completas` contém a evolução posterior às cinco avaliações e à revisão integral das 25 histórias da PIT I. Não foi criada uma versão acadêmica 0.3.
 
-O aplicativo dá continuidade ao planejamento da loja de cupcakes apresentado na disciplina **Projeto Integrador Transdisciplinar em Engenharia de Software I**. Não implementa as 25 histórias originais na íntegra; veja o mapeamento em [`docs/Mapa_25_Historias.md`](docs/Mapa_25_Historias.md).
+O projeto é uma **loja virtual fictícia**, sem processamento de pagamentos reais, entregas físicas, serviço de SMS/e-mail para andamento de pedidos ou garantias de persistência em hospedagem gratuita. Não use dados pessoais verdadeiros no protótipo.
 
-## Melhorias de usabilidade — versão 0.2 (04/11/2026)
+## Evolução verificável
 
-Após revisar as áreas não cobertas pelas fichas de verificação, foram incorporadas melhorias preventivas, sem alterar o visual principal: atalho de teclado para acessar o conteúdo, foco em mensagens de erro, orientação dinâmica entre entrega e retirada, valores estimados anunciados a tecnologias assistivas, tratamento de fotografias externas indisponíveis, pequenos ajustes para telas estreitas e respeito à preferência por movimento reduzido.
+1. **0.1 — primeiro vídeo:** implementação inicial da loja, antes da ampliação.
+2. **Cinco avaliações e revisão do backlog da PIT I:** foram preservadas as avaliações históricas; as lacunas descobertas na revisão dos requisitos não são apresentadas como sugestões que os avaliadores teriam feito.
+3. **0.2 — Ciclos A–E:** atualização incremental do site com filtros dinâmicos, migrações, gestão de produtos, CEP e agenda demonstrativos, combos, relacionamento, mensagens internas e pagamentos simulados.
+4. **Ciclo F:** consolidação da documentação, dicionário de dados, diagramas e auditoria; **homologação pública e vídeo final ainda pendentes**.
 
-**Verificação técnica:** 30 testes técnicos aprovados (27 originais + 3 novos). Também foram conferidos os fluxos principais de checkout e as larguras de 390 px e 320 px em Chromium local com HTML renderizado pela aplicação; nesses cenários, não houve rolagem horizontal. As fotografias originais permanecem inalteradas quando carregam corretamente.
+## Funções disponíveis no código da branch 0.2
 
-As alterações da versão 0.2 foram registradas como melhorias de usabilidade e verificadas por testes técnicos.
+- **Vitrine:** catálogo com disponibilidade, busca e filtros dinâmicos, produtos e promoções.
+- **Compra:** carrinho, combos com controle de estoque, cupom, cálculo local de taxa por faixas de CEP, entrega/retirada e agendamento demonstrativo em até 15 dias.
+- **Pagamento:** escolha entre `PIX demonstrativo`, `cartão demonstrativo` e `a combinar`. Aprovação/recusa são fictícias e idempotentes; **não são cobranças nem estornos reais**.
+- **Cliente:** cadastro, login, pedidos e recuperação por token com envio apenas se SMTP/HTTPS estiver realmente configurado; recomendações por categorias do histórico; avaliações moderadas; notificações **internas**.
+- **Administração:** produtos, arquivamento e auditoria, pedidos e estados, cupons, horários e regiões, contas de clientes e relatórios. Os valores exibidos são valores de pedidos, **não receita financeira recebida**.
+- **Acompanhamento:** status consultado automaticamente a cada 15 segundos, **não** push em tempo real.
 
-**Aplicação hospedada:** [https://le-cupcake.onrender.com/](https://le-cupcake.onrender.com/)
+**Ressalvas da PIT I:** nem todos os critérios de aceitação e metas não funcionais foram comprovados. US-11 e US-21 não enviam SMS/e-mail; US-12 é demonstrativa; **US-25 não possui gateway real integrado**. Consultar o [mapa atualizado de 25 histórias](docs/Mapa_25_Historias.md) e o [relatório do Ciclo F](docs/Ciclo_F_Auditoria_Consolidada_v02.md).
 
-## Como executar no Windows (caminho mais fácil)
+## Tecnologias e arquitetura
 
-1. Descompacte o ZIP em uma pasta do computador. Não execute diretamente dentro do ZIP.
-2. Instale **Python 3.11 ou mais recente** de [python.org](https://www.python.org/downloads/) e marque a opção de adicionar Python ao PATH, se aparecer.
-3. Dê dois cliques em **`INICIAR_WINDOWS.bat`**. Na primeira execução, será necessário ter internet para instalar as bibliotecas.
-4. Abra o navegador e acesse **http://127.0.0.1:8000**.
-5. Para habilitar o painel administrativo, interrompa o servidor (`Ctrl+C`), abra o arquivo `.env` (será criado no primeiro início) e preencha `ADMIN_EMAIL` e `ADMIN_PASSWORD` com uma senha exclusiva de **pelo menos 12 caracteres**. Inicie o programa novamente e use **Área administrativa**.
+Python 3.11+, FastAPI, Jinja2, HTML, CSS, JavaScript, SQLite, Pytest/HTTPX. A organização atual é incremental por serviços; **não é MVC formal completo**. `schema.sql` define **23 tabelas-base**; `migrations.py` aplica versões 1–7, totalizando **27 tabelas, 173 colunas e 34 chaves estrangeiras** no banco migrado. O carrinho operacional é guardado em **sessão assinada**; as tabelas projetadas `carrinhos`/`carrinho_itens` não equivalem a um carrinho persistente em uso.
 
-> Se o Windows não encontrar `py`, abra o Prompt de Comando na pasta, execute `python -m venv .venv` e depois `.venv\Scripts\python -m pip install -r requirements.txt`. Por fim, use `.venv\Scripts\python iniciar.py`.
+## Executar localmente
 
-## Execução manual (Windows, macOS ou Linux)
+1. Instale Python 3.11 ou mais recente.
+2. Instale as dependências: `python -m pip install -r requirements.txt`.
+3. Inicie: `python iniciar.py` ou `INICIAR_WINDOWS.bat` no Windows.
+4. Acesse `http://127.0.0.1:8000`.
+5. Para criar administrador, configure `ADMIN_EMAIL` e `ADMIN_PASSWORD` (12+ caracteres), sem incluir credenciais no GitHub.
 
-```bash
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python iniciar.py
-```
+Banco local de teste em `instance/cupcakes.db`; nunca publique esse banco, `.env`, `.local_secret` ou dados de clientes. No Render gratuito, a persistência do SQLite **não está garantida** sem volume persistente configurado.
 
-O aplicativo armazena os registros em **`instance/cupcakes.db`** e inicia com oito cupcakes de exemplo. O banco é criado automaticamente na primeira execução. **Não envie seu banco com dados pessoais para repositórios públicos.**
-
-### Área administrativa
-
-Para criar o primeiro usuário administrador, configure no `.env`:
-
-```text
-ADMIN_EMAIL=seu-email-de-teste@exemplo.com
-ADMIN_PASSWORD=uma-senha-exclusiva-com-12-ou-mais-caracteres
-```
-
-O usuário é criado automaticamente quando o aplicativo inicia. Por segurança, o projeto **não tem senha padrão**. Se um administrador já tiver sido criado, alterar a variável `ADMIN_PASSWORD` não redefine sua senha anterior.
-
-## O que funciona nesta versão
-
-- Catálogo público com oito produtos fictícios e categorias;
-- busca por produto/descrição e filtro por categoria;
-- página de detalhes, carrinho, alteração de quantidade e remoção;
-- retirada ou entrega fictícia com taxa fixa e endereço obrigatório;
-- cadastro de pedido com cálculo no servidor, número de pedido, link privado aleatório e redução automática do estoque;
-- painel administrativo com autenticação, cadastro/edição/ocultação de cupcakes;
-- consulta e atualização do status de pedidos e restauração do estoque após cancelamento;
-- páginas responsivas, validações no servidor e tokens CSRF nos formulários.
-
-**Recursos consolidados na versão 0.1:** cadastro e login de clientes (senha protegida), página de pedidos da conta, avaliações com moderação e respostas do administrador, cupons de desconto com regras e desconto calculado no servidor, relatório de pedidos, configuração administrativa de entrega e campo opcional de informações nutricionais verificadas. A página do produto também mostra sugestões da mesma categoria.
-
-**Não funciona ainda:** pagamentos on-line, recuperação de senha por e-mail, disparo de e-mails/SMS, combos personalizados, agendamento de entregas, análise de receita recebida, avaliações verificadas por compra e recomendações personalizadas pelo histórico. Recursos parciais e pendentes estão no mapa das 25 histórias. Os dados de entrega exibidos são exemplos, não uma oferta real de logística.
-
-## Tecnologias
-
-- **Python + FastAPI** para a aplicação web e as regras do servidor;
-- **Jinja2, HTML, CSS e JavaScript** para as telas;
-- **SQLite** para armazenamento inicial, com o esquema de 23 tabelas proposto no planejamento (nem todas utilizadas nesta versão);
-- **Pytest + HTTPX** para os testes técnicos.
-
-O material da disciplina sugere MVC e linguagens como Python, Java ou PHP. Nesta implementação, as funções são separadas logicamente por responsabilidades e a interface fica isolada em templates; uma migração futura para uma organização completa em camadas é recomendável antes da versão final.
-
-## Testes técnicos
-
-Instale também o arquivo de dependências de desenvolvimento e execute:
+## Testes e verificações
 
 ```bash
 python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-Os testes técnicos incluem as verificações anteriores e também os novos cenários de acessibilidade, navegação e orientação de entrega da versão 0.2. Isso **não substitui** os **cinco testes com pessoas reais** exigidos pela universidade. Há um modelo para os registros humanos em `docs/Modelo_Avaliacao_5_Usuarios.md`.
+A cópia local do Ciclo E passou em **93 testes automatizados**; a checagem de estrutura do Ciclo F encontrou `PRAGMA user_version=7`, 27 tabelas, 173 campos e 34 FKs sem violações na base de teste. Os testes **não** substituem inspeção visual em navegadores reais, ensaios de desempenho/carga, homologação do site publicado, entrega efetiva de SMS/e-mail ou gateway de pagamento.
 
-## Publicação no GitHub e hospedagem
+## Documentação e entrega
 
-1. Crie um repositório para o projeto e envie **os arquivos da pasta**; não envie `instance/cupcakes.db`, `.env`, senhas ou dados reais.
-2. O GitHub publica código, mas **não executa este back-end Python automaticamente**. A loja precisa de um serviço de hospedagem Python para funcionar num link público.
-3. No provedor escolhido, instale `requirements.txt`, configure `SECRET_KEY`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` e `COOKIE_SECURE=1` com HTTPS; comando de início: `uvicorn app:app --host 0.0.0.0 --port $PORT` (quando o provedor definir `PORT`).
-4. **Atenção ao SQLite:** ambientes de hospedagem com armazenamento efêmero podem apagar os pedidos ao reiniciar; use armazenamento persistente ou migre para PostgreSQL antes da avaliação real.
-5. Nunca insira dados verdadeiros de cartão neste protótipo. Para teste público, use nomes e endereços fictícios, pois esta versão ainda não passou por uma revisão formal de segurança e privacidade de produção.
+- [Matriz original das 25 histórias](docs/Matriz_Rastreabilidade_PIT_I_25_Historias.md).
+- [Mapa atualizado, com limites explícitos](docs/Mapa_25_Historias.md).
+- [Auditoria e modelagem — Ciclo F](docs/Ciclo_F_Auditoria_Consolidada_v02.md).
+- [Manual atualizado](docs/Manual_de_Uso.md).
+- [Testes técnicos](docs/Testes_Tecnicos.md).
+- [Checklist real de homologação](docs/Checklist_Entrega_PIT_II.md).
+- [Cinco avaliações históricas em PDF](docs/Cinco_Fichas_Avaliacao_ABNT.pdf), mantidas sem alteração.
+- [Laudo anterior em PDF](docs/Laudo_de_Qualidade_Final_ABNT.pdf), **histórico; não é laudo final da versão 0.2 ampliada**.
+- [Formulário oficial preenchido anteriormente](docs/PIT_atividade_Le_Cupcake_Preenchida.docx), **histórico; revisar e atualizar após a publicação**.
+- [Fontes das fotografias](docs/Referencias_Fotograficas_Simplificadas.docx). A publicação deve observar atribuições CC BY/CC BY-SA.
 
-**Repositório do projeto:** [https://github.com/jobf2003-web/le-cupcake](https://github.com/jobf2003-web/le-cupcake)
+**Link atual do site público (versão anterior):** https://le-cupcake.onrender.com/. **Não confundir com a branch de desenvolvimento.**
 
-**Link da aplicação:** [https://le-cupcake.onrender.com/](https://le-cupcake.onrender.com/)
+**Primeiro vídeo:** mantido como demonstração inicial, sem regravação. **Segundo vídeo:** deverá representar a versão 0.2 após publicação e testes, com limites do plano gratuito explicitados. Não afirmar que os registros de avaliações foram alterados.
 
-Na entrega, conferir o acesso do tutor ao repositório (atualmente privado), os links das gravações e o funcionamento público da aplicação.
+## Segurança e alcance
 
-## Materiais da universidade ainda pendentes
-
-A aplicação está hospedada e o formulário oficial da disciplina está preenchido em [`docs/PIT_atividade_Le_Cupcake_Preenchida.docx`](docs/PIT_atividade_Le_Cupcake_Preenchida.docx), com os campos técnicos, as cinco fichas de avaliação, o resumo do laudo e os links de demonstração. **Antes da submissão ao AVA, preencher o nome e o RGM do estudante**, que foram deixados em branco para conferência.
-
-- [Vídeo 1 — apresentação narrada (mais de cinco minutos)](https://drive.google.com/file/d/1jj2vhp1Bgc8iYXeqt2CTQA2VwP723w0I/view?usp=drive_link)
-- [Vídeo 2 — apresentação das melhorias (até cinco minutos)](https://drive.google.com/file/d/1nOQRqD-nm-D74yi2mFbfxHf_bvSv64oa/view?usp=drive_link)
-
-A documentação ABNT preliminar está em `docs/Documentacao_ABNT.docx`. O relatório simplificado, também em padrão ABNT, está em `docs/Relatorio_Atualizacao_Sistema_ABNT.docx`. Nenhum deles substitui o formulário oficial preenchido após os testes reais. Os diagramas e wireframes de planejamento também ficam em `docs/diagramas`.
-
-## Estrutura
-
-```text
-app.py                    # Regras da aplicação e endpoints
-schema.sql                # Modelo relacional de 23 tabelas
-iniciar.py                # Inicializador local e leitura do .env
-INICIAR_WINDOWS.bat       # Inicialização guiada no Windows
-templates/                 # Páginas HTML com Jinja2
-static/                    # Estilo e JS da interface
-tests/                     # Testes técnicos
-docs/                      # Documentação acadêmica, modelos e relatórios
-instance/                  # Banco local (não publicar)
-```
-
-
-## Fotografias reais e referências
-
-- As fotografias exibidas no catálogo, nas páginas de produtos e na administração são **fotografias reais de terceiros**, com fontes e licenças identificadas no documento de referências.
-- Fonte: **Wikimedia Commons**, com autor, página de origem e licença verificados individualmente.
-- As referências estão **somente no Word** [`docs/Referencias_Fotograficas_Simplificadas.docx`](docs/Referencias_Fotograficas_Simplificadas.docx); a página `/creditos` e os links de créditos foram removidos do site.
-- As imagens são **ilustrativas** e representam cupcakes semelhantes; não são fotos de cupcakes que a loja fictícia produziu ou vende de verdade.
-- Os arquivos são carregados da Wikimedia Commons via Internet e, portanto, **não estarão visíveis sem acesso à rede**. Caso a origem remova um arquivo, será necessário substituí-lo por outra fotografia verificada.
-- O formulário administrativo permite selecionar somente fotografias da biblioteca documentada; outros endereços não são aceitos.
-- O recorte visual (enquadramento do navegador) é realizado via CSS, sem alterar os arquivos originais.
-
-**Licenciamento das fotografias:** algumas fotos têm licenças CC BY ou CC BY-SA que exigem atribuição em usos públicos. O arquivo Word reúne os créditos e links, mas, antes de publicar a loja abertamente, verifique como disponibilizar esses créditos de forma compatível com as licenças. Uma alternativa é usar exclusivamente fotografias em domínio público ou CC0.
-
-
-## Identidade visual preservada na versão 0.2
-
-A paleta foi revisada e conferida em todas as páginas: verde-sálvia `#3D634D`,
-terracota `#B45C3C`, creme `#FFF8EC` e verde-claro `#DDE9D7`.
-A faixa acadêmica superior continua marrom (`#5A4143`).
-O endereço dos arquivos estáticos utiliza identificadores de atualização para evitar que o navegador
-exiba estilos antigos guardados em cache.
-
-**Importante ao atualizar:** feche o servidor anterior e abra o
-`INICIAR_WINDOWS.bat` **dentro da nova pasta extraída**. Se a aparência
-continuar antiga, pressione `Ctrl + F5` no navegador.
-
-
-## Recursos funcionais da versão 0.1 preservados na versão 0.2
-
-- **Cliente:** clique em **Entrar / Cadastrar** no cabeçalho. Crie uma conta com senha de pelo menos 12 caracteres. O carrinho permanece ao entrar, e os pedidos criados com a sessão autenticada aparecem em **Minha conta**. Pedidos anteriores feitos como visitante não são associados automaticamente.
-- **Cupom:** o administrador faz login em **Área administrativa → Cupons** e cria o código (percentual ou valor fixo, mínimo e limite de usos). O cliente informa o código no checkout. O valor final é verificado no servidor e aparece no resumo do pedido concluído. Cupom de pedido cancelado não consome o limite.
-- **Avaliações:** clientes registrados avaliam o cupcake na página de detalhes. O comentário permanece oculto até **Administração → Avaliações → Publicar**. A equipe pode responder ou ocultar comentários. Uma avaliação por cliente e produto.
-- **Relatórios:** consulte **Administração → Relatórios**. Os totais indicam o valor dos pedidos não cancelados; **não representam pagamentos realizados**.
-- **Entrega:** o administrador altera custos e descrições em **Administração → Entregas**. Ao menos uma modalidade deve permanecer ativa.
-- **Informações nutricionais:** são preenchidas na edição do cupcake e só aparecem na página do produto se houver dados informados e verificados. Nenhum valor nutricional foi inventado.
-
-**Segurança e privacidade:** este continua sendo um protótipo. Use contas e dados de teste ao apresentar em público. A recuperação de senha, a verificação de e-mails, o tratamento formal da LGPD e uma avaliação de segurança para hospedagem aberta ainda não foram feitos. Não utilize nomes, endereços ou telefones reais de clientes neste protótipo público.
-
-## Manutenção do repositório
-
-O projeto está versionado no GitHub e hospedado no Render. Nunca envie `.env`, `instance/cupcakes.db`, credenciais nem dados pessoais ao repositório. Antes de liberar o acesso público, confirme a atribuição das fotografias e a persistência do banco de dados.
+O projeto é acadêmico; não processa pagamentos ou cartões, não provê logística real e não garante persistência após reinício na hospedagem gratuita. Os testes de carga de 500/1.000 operações concorrentes e as metas de latência da PIT I **não foram comprovados**. A declaração de atendimento integral depende da aceitação acadêmica dos limites, dos testes manuais e da homologação final.
