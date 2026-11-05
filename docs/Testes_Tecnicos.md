@@ -1,4 +1,4 @@
-# Verificação técnica — versão 0.6
+# Verificação técnica — versão 0.2
 
 **Ambiente:** Python, FastAPI/Starlette TestClient, Pytest, HTTPX e SQLite; cada teste utiliza banco de dados isolado e temporário. A execução é local, não envolve serviço de pagamento, SMS, e-mail ou hospedagem pública.
 
