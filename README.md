@@ -8,7 +8,7 @@ O aplicativo dá continuidade ao planejamento da loja de cupcakes apresentado na
 
 Após revisar as áreas não cobertas pelas fichas de verificação, foram incorporadas melhorias preventivas, sem alterar o visual principal: atalho de teclado para acessar o conteúdo, foco em mensagens de erro, orientação dinâmica entre entrega e retirada, valores estimados anunciados a tecnologias assistivas, tratamento de fotografias externas indisponíveis, pequenos ajustes para telas estreitas e respeito à preferência por movimento reduzido.
 
-**Verificação técnica:** 30 testes automatizados aprovados (27 originais + 3 novos). Também foram conferidos os fluxos principais de checkout e as larguras de 390 px e 320 px em Chromium local com HTML renderizado pela aplicação; nesses cenários, não houve rolagem horizontal. As fotografias originais permanecem inalteradas quando carregam corretamente.
+**Verificação técnica:** 30 testes técnicos aprovados (27 originais + 3 novos). Também foram conferidos os fluxos principais de checkout e as larguras de 390 px e 320 px em Chromium local com HTML renderizado pela aplicação; nesses cenários, não houve rolagem horizontal. As fotografias originais permanecem inalteradas quando carregam corretamente.
 
 Os ajustes acima são melhorias de qualidade identificadas na revisão técnica, não resultados atribuídos a participantes que não testaram o sistema.
 
@@ -68,7 +68,7 @@ O usuário é criado automaticamente quando o aplicativo inicia. Por segurança,
 - **Python + FastAPI**, escolhido para permitir verificação automatizada local da implementação;
 - **Jinja2, HTML, CSS e JavaScript** para as telas;
 - **SQLite** para armazenamento inicial, com o esquema de 23 tabelas proposto no planejamento (nem todas utilizadas nesta versão);
-- **Pytest + HTTPX** para os testes automatizados.
+- **Pytest + HTTPX** para os testes técnicos.
 
 O material da disciplina sugere MVC e linguagens como Python, Java ou PHP. Nesta implementação, as funções são separadas logicamente por responsabilidades e a interface fica isolada em templates; uma migração futura para uma organização completa em camadas é recomendável antes da versão final.
 
@@ -81,7 +81,7 @@ python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-Os testes automatizados incluem as verificações anteriores e também os novos cenários de acessibilidade, navegação e orientação de entrega da versão 0.6. Isso **não substitui** os **cinco testes com pessoas reais** exigidos pela universidade. Há um modelo para os registros humanos em `docs/Modelo_Avaliacao_5_Usuarios.md`.
+Os testes técnicos incluem as verificações anteriores e também os novos cenários de acessibilidade, navegação e orientação de entrega da versão 0.6. Isso **não substitui** os **cinco testes com pessoas reais** exigidos pela universidade. Há um modelo para os registros humanos em `docs/Modelo_Avaliacao_5_Usuarios.md`.
 
 ## Publicação no GitHub e hospedagem
 
@@ -108,7 +108,7 @@ iniciar.py                # Inicializador local e leitura do .env
 INICIAR_WINDOWS.bat       # Inicialização guiada no Windows
 templates/                 # Páginas HTML com Jinja2
 static/                    # Estilo e JS da interface
-tests/                     # Testes automatizados
+tests/                     # Testes técnicos
 docs/                      # Documentação e formulários sem dados fictícios
 instance/                  # Banco local (não publicar)
 ```
@@ -116,7 +116,7 @@ instance/                  # Banco local (não publicar)
 
 ## Fotografias reais e referências (atualização v0.3)
 
-- Todas as fotografias exibidas no catálogo, detalhe, carrinho, administração e destaque da página inicial são **fotografias reais de terceiros**. Não há fotografias geradas por inteligência artificial.
+- Todas as fotografias exibidas no catálogo, detalhe, carrinho, administração e destaque da página inicial são **fotografias reais de terceiros**. As fotografias são de terceiros, com suas fontes e licenças identificadas no documento de referências.
 - Fonte: **Wikimedia Commons**, com autor, página de origem e licença verificados individualmente.
 - As referências estão **somente no Word** [`docs/Referencias_Fotograficas_Simplificadas.docx`](docs/Referencias_Fotograficas_Simplificadas.docx); a página `/creditos` e os links de créditos foram removidos do site.
 - As imagens são **ilustrativas** e representam cupcakes semelhantes; não são fotos de cupcakes que a loja fictícia produziu ou vende de verdade.
