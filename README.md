@@ -54,8 +54,8 @@ A cópia local do Ciclo E passou em **93 testes automatizados**; a checagem de e
 - [Testes técnicos](docs/Testes_Tecnicos.md).
 - [Checklist real de homologação](docs/Checklist_Entrega_PIT_II.md).
 - [Cinco avaliações históricas em PDF](docs/Cinco_Fichas_Avaliacao_ABNT.pdf), mantidas sem alteração.
-- **Laudo de qualidade da versão 0.2:** preparar o documento atualizado a partir da implementação e dos testes da branch, incluindo as evidências locais e os limites reais. A publicação do DOCX/PDF definitivo no repositório ainda está pendente.
-- **Formulário oficial da PIT II:** atualizar os campos técnicos para a versão 0.2, manter as cinco avaliações intactas e inserir o segundo vídeo após a sua gravação.
+- [Laudo de qualidade da versão 0.2](docs/Laudo_de_Qualidade_Final_ABNT.docx): relatório com os resultados locais, as limitações declaradas e as evidências comparativas das telas 0.1/0.2 (as imagens da 0.2 são de reprodução local, não do Render).
+- [Formulário oficial da PIT II](docs/PIT_atividade_Le_Cupcake_Preenchida.docx): mantém a estrutura do modelo da faculdade e os cinco registros de avaliação. Antes da entrega, conferir sua sincronização com a cópia mais recente e preencher o link verdadeiro do segundo vídeo.
 - [Fontes das fotografias](docs/Referencias_Fotograficas_Simplificadas.docx). A publicação deve observar atribuições CC BY/CC BY-SA.
 
 **Link atual do site público (versão anterior):** https://le-cupcake.onrender.com/. **Não confundir com a branch de desenvolvimento.**
