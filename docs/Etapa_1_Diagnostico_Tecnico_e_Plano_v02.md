@@ -7,7 +7,7 @@
 - **Versão 0.1:** implementação inicial, apresentada no **primeiro vídeo**; não será apagada nem falsamente descrita como completa.
 - **Avaliações:** os cinco registros já aprovados pelo tutor são mantidos como foram documentados. Suas observações são uma entrada para a melhoria; não serão reescritos para parecer que avaliaram funcionalidades que não existiam.
 - **Revisão do escopo:** confronto do código com as 25 histórias originais da PIT I. A recuperação dos requisitos mostrou lacunas que não decorrem necessariamente das avaliações.
-- **Versão 0.2 (substituição futura):** deverá reunir as melhorias de usabilidade avaliadas e as implementações que atendam, na medida comprovada, às 25 histórias. O segundo vídeo apresentará esta evolução, com transparência sobre limitações gratuitas.
+- **Versão 0.2 (evolução planejada):** deverá reunir as melhorias de usabilidade avaliadas e as implementações que atendam, na medida comprovada, às 25 histórias. O segundo vídeo apresentará esta evolução, com transparência sobre limitações gratuitas.
 
 **Atenção:** a versão atualmente publicada e denominada 0.2 ainda é parcial. Não tomar sua numeração como prova de conclusão. O desenvolvimento ocorre nesta branch. Não alterar a `main` ou a aplicação pública sem validação e decisão de publicação.
 
@@ -16,9 +16,9 @@
 1. Documento original **“Projeto - José Otávio Braga Fante (1).docx”**, seção *Resultado e discussão*, imagens das 25 histórias e tabela de tarefas. São fontes dos critérios CA, regras RN e requisitos RNF.
 2. Matriz `docs/Matriz_Rastreabilidade_PIT_I_25_Historias.md`, na branch de desenvolvimento.
 3. Código da branch principal consultado: `app.py` (SHA `cd680d223737437604b41c2ea5b9c5c52bf59ead`), `schema.sql` (SHA `12f4d7d6b7cd54fc6888f67a3ab6a1bcf88f6385`), templates HTML, JS e testes.
-4. Uma cópia local com `app.py` e `schema.sql` correspondentes aos SHAs acima foi executada com `python -m pytest -q`: **30 testes passaram**. Isso é um resultado local de regressão, não uma homologação das 25 histórias, das integrações externas nem da hospedagem.
+4. Uma cópia local de referência com `app.py` e `schema.sql` foi examinada com testes de regressão. Essa linha de base não constitui homologação das 25 histórias, das integrações externas nem da hospedagem; o registro final de testes da versão 0.2 consta da Etapa 2 e do Ciclo F.
 
-**Números observados:** 37 rotas GET/POST, 23 tabelas SQLite e 30 testes preexistentes (19 de aplicação, oito de recursos e três de melhorias). O código é predominantemente um único módulo `app.py`, com templates Jinja2 e sessões assinadas.
+**Estrutura inicial examinada:** 37 rotas GET/POST e 23 tabelas SQLite no esquema-base; o código era predominantemente centralizado em `app.py`, com templates Jinja2 e sessões assinadas. As quantidades finais da 0.2 são apresentadas no Ciclo F.
 
 **Estimativas da PIT I:** o backlog soma 320 horas; o texto da PIT I informa 332 horas. A diferença permanece registrada, não corrigida arbitrariamente.
 
