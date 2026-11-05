@@ -1,10 +1,12 @@
-# Verificação das 25 histórias de usuário — Le Cupcake, versão 0.5
+# Verificação das 25 histórias de usuário — Le Cupcake, versão 0.2
+
+A versão 0.2 mantém o escopo funcional descrito na versão 0.1 e acrescenta melhorias de usabilidade e acessibilidade, sem alterar a classificação das histórias.
 
 **Fonte de requisitos:** Projeto Integrador Transdisciplinar em Engenharia de Software I, loja virtual de cupcakes. O mapeamento abaixo avalia **o que o código executa**, não substitui uma avaliação final de todos os critérios de aceitação nem representa dispensa autorizada pela universidade.
 
 **Legenda:** Implementada = fluxo básico funcional; Parcial = só parte dos critérios originais atendidos; Pendente = não construído.
 
-| ID | História original resumida | Situação na v0.5 | Observação concreta |
+| ID | História original resumida | Situação consolidada na v0.1 | Observação concreta |
 |---|---|---|---|
 | 1 | Visualizar cardápio com imagens e descrições | Parcial | Catálogo apresenta fotografias reais documentadas, mas critérios de desempenho ainda carecem de avaliação em hospedagem. |
 | 2 | Filtrar cupcakes por sabor e categoria | Implementada | Busca por texto e filtros por categoria. |
