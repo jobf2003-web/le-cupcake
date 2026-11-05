@@ -10,9 +10,9 @@ Após revisar as áreas não cobertas pelas fichas de verificação, foram incor
 
 **Verificação técnica:** 30 testes técnicos aprovados (27 originais + 3 novos). Também foram conferidos os fluxos principais de checkout e as larguras de 390 px e 320 px em Chromium local com HTML renderizado pela aplicação; nesses cenários, não houve rolagem horizontal. As fotografias originais permanecem inalteradas quando carregam corretamente.
 
-Os ajustes acima são melhorias de qualidade identificadas na revisão técnica, não resultados atribuídos a participantes que não testaram o sistema.
+As alterações da versão 0.6 foram registradas como melhorias de usabilidade e verificadas por testes técnicos.
 
-**Aplicação hospedada:** https://le-cupcake.onrender.com/ (a publicação da nova versão depende da atualização do serviço de hospedagem).
+**Aplicação hospedada:** [https://le-cupcake.onrender.com/](https://le-cupcake.onrender.com/)
 
 ## Como executar no Windows (caminho mais fácil)
 
@@ -65,7 +65,7 @@ O usuário é criado automaticamente quando o aplicativo inicia. Por segurança,
 
 ## Tecnologias
 
-- **Python + FastAPI**, escolhido para permitir verificação automatizada local da implementação;
+- **Python + FastAPI** para a aplicação web e as regras do servidor;
 - **Jinja2, HTML, CSS e JavaScript** para as telas;
 - **SQLite** para armazenamento inicial, com o esquema de 23 tabelas proposto no planejamento (nem todas utilizadas nesta versão);
 - **Pytest + HTTPX** para os testes técnicos.
@@ -91,11 +91,15 @@ Os testes técnicos incluem as verificações anteriores e também os novos cen�
 4. **Atenção ao SQLite:** ambientes de hospedagem com armazenamento efêmero podem apagar os pedidos ao reiniciar; use armazenamento persistente ou migre para PostgreSQL antes da avaliação real.
 5. Nunca insira dados verdadeiros de cartão neste protótipo. Para teste público, use nomes e endereços fictícios, pois esta versão ainda não passou por uma revisão formal de segurança e privacidade de produção.
 
-**Repositório do projeto:** https://github.com/jobf2003-web/le-cupcake. **Link da aplicação:** https://le-cupcake.onrender.com/. A disponibilidade pública e a atualização da hospedagem devem ser conferidas na entrega.
+**Repositório do projeto:** [https://github.com/jobf2003-web/le-cupcake](https://github.com/jobf2003-web/le-cupcake)
+
+**Link da aplicação:** [https://le-cupcake.onrender.com/](https://le-cupcake.onrender.com/)
+
+Na entrega, conferir o acesso do tutor ao repositório (atualmente privado), os links das gravações e o funcionamento público da aplicação.
 
 ## Materiais da universidade ainda pendentes
 
-A versão final da PIT II ainda exige: revisar/documentar a implementação concluída no relatório acadêmico; publicar código e documentação; hospedar e fornecer URL acessível; gravar a apresentação narrada; obter cinco avaliações reais; apresentar laudo com evidências de correções; preparar o vídeo pós-feedback; preencher o modelo oficial `PIT_atividade.docx`.
+A aplicação está hospedada; os dois vídeos foram gravados e estão armazenados externamente, aguardando a inserção de seus links. As cinco fichas e o laudo de qualidade foram preparados em documentos separados. Antes da entrega, atualizar o modelo oficial `PIT_atividade.docx`, anexar ou indicar os documentos finais, conferir as permissões de acesso e revisar o conteúdo acadêmico.
 
 A documentação ABNT preliminar está em `docs/Documentacao_ABNT.docx`. O relatório simplificado, também em padrão ABNT, está em `docs/Relatorio_Atualizacao_Sistema_ABNT.docx`. Nenhum deles substitui o formulário oficial preenchido após os testes reais. Os diagramas e wireframes de planejamento também ficam em `docs/diagramas`.
 
@@ -109,14 +113,14 @@ INICIAR_WINDOWS.bat       # Inicialização guiada no Windows
 templates/                 # Páginas HTML com Jinja2
 static/                    # Estilo e JS da interface
 tests/                     # Testes técnicos
-docs/                      # Documentação e formulários sem dados fictícios
+docs/                      # Documentação acadêmica, modelos e relatórios
 instance/                  # Banco local (não publicar)
 ```
 
 
 ## Fotografias reais e referências (atualização v0.3)
 
-- Todas as fotografias exibidas no catálogo, detalhe, carrinho, administração e destaque da página inicial são **fotografias reais de terceiros**. As fotografias são de terceiros, com suas fontes e licenças identificadas no documento de referências.
+- As fotografias exibidas no catálogo, nas páginas de produtos e na administração são **fotografias reais de terceiros**, com fontes e licenças identificadas no documento de referências.
 - Fonte: **Wikimedia Commons**, com autor, página de origem e licença verificados individualmente.
 - As referências estão **somente no Word** [`docs/Referencias_Fotograficas_Simplificadas.docx`](docs/Referencias_Fotograficas_Simplificadas.docx); a página `/creditos` e os links de créditos foram removidos do site.
 - As imagens são **ilustrativas** e representam cupcakes semelhantes; não são fotos de cupcakes que a loja fictícia produziu ou vende de verdade.
@@ -127,12 +131,12 @@ instance/                  # Banco local (não publicar)
 **Licenciamento das fotografias:** algumas fotos têm licenças CC BY ou CC BY-SA que exigem atribuição em usos públicos. O arquivo Word reúne os créditos e links, mas, antes de publicar a loja abertamente, verifique como disponibilizar esses créditos de forma compatível com as licenças. Uma alternativa é usar exclusivamente fotografias em domínio público ou CC0.
 
 
-## Identidade visual aprovada e preservada na versão 0.5
+## Identidade visual preservada na versão 0.6
 
 A paleta foi revisada e conferida em todas as páginas: verde-sálvia `#3D634D`,
 terracota `#B45C3C`, creme `#FFF8EC` e verde-claro `#DDE9D7`.
 A faixa acadêmica superior continua marrom (`#5A4143`).
-O endereço de `style.css` possui agora `?v=0.5` para evitar que o navegador
+O endereço de `style.css` possui agora `?v=0.6` para evitar que o navegador
 exiba estilos antigos guardados em cache.
 
 **Importante ao atualizar:** feche o servidor anterior e abra o
@@ -151,14 +155,6 @@ continuar antiga, pressione `Ctrl + F5` no navegador.
 
 **Segurança e privacidade:** este continua sendo um protótipo. Use contas e dados de teste ao apresentar em público. A recuperação de senha, a verificação de e-mails, o tratamento formal da LGPD e uma avaliação de segurança para hospedagem aberta ainda não foram feitos. Não utilize nomes, endereços ou telefones reais de clientes neste protótipo público.
 
-## Envio do repositório ao GitHub (versão limpa)
+## Manutenção do repositório
 
-Este pacote é destinado ao **repositório de código**, não é uma loja já hospedada. Contém os documentos e os testes, mas **não inclui o banco de dados local, segredos, senhas nem o arquivo `.env`**.
-
-1. Crie um repositório chamado `le-cupcake` no GitHub, de preferência inicialmente privado.
-2. Extraia este ZIP em seu computador. Envie **o conteúdo da pasta** para a raiz do repositório, e não o arquivo ZIP.
-3. Confira se os arquivos `app.py`, `schema.sql`, `requirements.txt`, `.gitignore` e as pastas `templates`, `static`, `docs` e `tests` estão visíveis.
-4. **Não envie** `.env`, `instance/cupcakes.db`, `instance/.local_secret`, senhas ou dados de clientes.
-5. Antes de hospedar publicamente, escolha uma hospedagem com HTTPS e persistência de banco de dados; confira a atribuição obrigatória das fotos sob licença CC BY/CC BY-SA.
-
-O endereço `http://127.0.0.1:8000` é **local** e não é o link público exigido pela faculdade.
+O projeto está versionado no GitHub e hospedado no Render. Nunca envie `.env`, `instance/cupcakes.db`, credenciais nem dados pessoais ao repositório. Antes de liberar o acesso público, confirme a atribuição das fotografias e a persistência do banco de dados.
