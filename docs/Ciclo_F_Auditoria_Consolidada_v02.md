@@ -6,7 +6,7 @@
 
 A PIT I definiu **25 histórias**. A PIT II exige revisar escopo, UML, IHC, modelos conceitual/lógico/físico, dicionário, codificação, testes, cinco avaliações em PDF, laudo com evidências e dois vídeos.
 
-A sequência factual adotada é **0.1 (implementação inicial e primeiro vídeo) → cinco avaliações preservadas → revisão dos requisitos originais → Ciclos A–E da versão 0.2 → Ciclo F → futura homologação/publicação**. A revisão de requisitos identificou lacunas não necessariamente apontadas nas avaliações. O primeiro vídeo permanecerá como registro histórico. A versão 0.2 consolidada substituirá a edição intermediária rotulada 0.2; não será criada 0.3.
+A sequência factual adotada é **0.1 (implementação inicial e primeiro vídeo) → cinco avaliações preservadas → revisão dos requisitos originais → Ciclos A–E da versão 0.2 → Ciclo F → futura homologação/publicação**. A revisão de requisitos identificou lacunas não necessariamente apontadas nas avaliações. O primeiro vídeo permanecerá como registro histórico. A versão 0.2 é a evolução documentada diretamente a partir da implementação inicial 0.1, após as avaliações e a revisão dos requisitos da PIT I.
 
 ## Fontes efetivamente verificadas
 
@@ -39,18 +39,17 @@ Consultar [Mapa_25_Historias.md](Mapa_25_Historias.md). O fato de uma função c
 
 A modelagem final deverá ser reconferida com o código publicado. Documentos de interface são protótipos esquemáticos, não capturas de teste.
 
-## Registro de contradições corrigidas neste ciclo
+## Controle de consistência dos documentos da versão 0.2
 
-| Contradição anterior | Tratamento |
-|---|---|
-| README e manual referiam 0.5/0.6 como versão acadêmica atual | Referências atuais unificadas como **0.2 em desenvolvimento**; revisões anteriores preservadas no histórico Git |
-| Mapa antigo declarava US-13/14 como não implementadas | Atualizado: agenda e combos existentes em nível demonstrativo/local |
-| Alguns textos afirmavam “23 tabelas” | **23 no esquema-base; 27 depois das migrações v1–7** |
-| Laudo e textos antigos usavam “27” ou “30 testes” | Números históricos; referência atual: **93 testes locais** |
-| “Relatórios de vendas” poderiam soar como recebimento financeiro | Documentado: **valores de pedidos, sem comprovação de receita recebida** |
-| Pagamento e notificações simuladas poderiam parecer integração externa | Diagramas, manual e documentos especificam explicitamente as fronteiras |
-| Formulário oficial e laudo antigos pareceriam entrega final | Marcados como **artefatos históricos**, sujeitos a nova revisão após publicação |
-| “Todas as histórias cumpridas” não seria sustentado por RNFs | Situações detalhadas por história e **aceitação integral não declarada** |
+Os registros de avaliação e o primeiro vídeo pertencem à versão 0.1 e permanecem inalterados. A revisão dos requisitos do PIT I e os Ciclos A–F produziram a versão 0.2 descrita neste documento.
+
+- **Banco efetivo:** 23 tabelas no esquema-base e 27 tabelas após as migrações 1–7; o dicionário oficial deve refletir as 27.
+- **Testes atuais:** 93 casos automatizados aprovados em ambiente local, sem equivaler a testes visuais ou de produção.
+- **Pagamentos:** métodos demonstrativos; nenhuma transação financeira ou gateway real.
+- **Comunicação:** notificações internas; SMTP e SMS externos não homologados.
+- **Relatórios:** valores de pedidos registrados, não receita financeira recebida.
+- **Evidências:** prints locais da 0.2 identificados como locais; a validação do Render permanece pendente.
+- **Entrega acadêmica:** formulário, laudo e documentação principal devem relatar somente 0.1 → avaliações → revisão da PIT I → 0.2 e guardar as limitações verificadas.
 
 ## Instruções PIT II: evidências e pendências
 
