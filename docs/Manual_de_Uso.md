@@ -1,4 +1,4 @@
-# Manual de utilização — Le Cupcake, versão 0.5
+# Manual de utilização — Le Cupcake, versão 0.6
 
 ## Iniciar no Windows
 
@@ -10,7 +10,7 @@ Extraia o ZIP, abra a pasta e execute `INICIAR_WINDOWS.bat`. Na primeira execuç
 2. Na página do produto, veja outras sugestões da mesma categoria. Caso tenha conta, você pode enviar uma avaliação (sujeita à moderação).
 3. Adicione itens ao carrinho e edite as quantidades.
 4. Opcionalmente, abra **Entrar / Cadastrar**, crie uma conta com senha de 12 ou mais caracteres e faça login. Seus pedidos posteriores aparecerão em **Minha conta**.
-5. No checkout, informe nome, e-mail, telefone e modalidade de recebimento. Se selecionar entrega, preencha endereço de teste. Insira o cupom (se tiver) no campo próprio.
+5. No checkout, informe nome, e-mail, telefone e modalidade de recebimento. Ao selecionar **entrega**, o sistema orienta a preencher o endereço completo; na **retirada**, esse campo deixa de ser obrigatório. Insira o cupom (se tiver) no campo próprio.
 6. Confirme o pedido, confira o desconto e o valor final e guarde o link de acompanhamento. Você também poderá abrir os pedidos vinculados a sua conta em **Minha conta**.
 
 **Importante:** não há processamento de pagamentos ou entregas reais. Não insira dados verdadeiros de cartões, nomes ou endereços ao testar o protótipo.
