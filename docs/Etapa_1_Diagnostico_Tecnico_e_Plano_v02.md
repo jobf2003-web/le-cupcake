@@ -45,7 +45,7 @@
 ## 4. Decisões técnicas para a execução
 
 - **Padrão de entrega:** manter FastAPI/Jinja2/SQLite no desenvolvimento, preservar a identidade visual e acrescentar módulos conforme necessário. Evitar reescrita completa sem justificativa.
-- **Migrações:** adotar `schema_migrations` e scripts versionados/controle de transação; testar banco novo e upgrade de banco existente antes da publicação.
+- **Migrações:** utilizar revisões versionadas de esquema com `PRAGMA user_version` do SQLite, savepoints e rollback; testar banco novo e upgrade de banco existente antes da publicação. A implementação inicial desta estratégia está em `migrations.py` (Etapa 2, ciclo A).
 - **Contratos de domínio:** separar serviços para catálogo, carrinho/combos, pedidos, logística/agendamento, cupons, notificações, pagamento, identidade e auditoria. A divisão será incremental e testada.
 - **Pedidos/estoque:** garantir transações atômicas, estoque de combo por componente, regras de mudança de status, cancelamento antes da produção e proteção contra processamento duplicado.
 - **Segurança:** CSRF, autorização, sessão segura, não armazenar dados de cartão, proteção de tokens, auditoria, dados fictícios na demonstração e segredos apenas em ambiente seguro.
