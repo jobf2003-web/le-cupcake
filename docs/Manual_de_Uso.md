@@ -1,4 +1,4 @@
-# Manual de utilização — Le Cupcake, versão 0.6
+# Manual de utilização — Le Cupcake, versão 0.2
 
 ## Iniciar no Windows
 
