@@ -1,4 +1,4 @@
-"""Testes automatizados dos fluxos mais importantes da loja acadêmica."""
+"""Verificações técnicas dos principais fluxos da loja acadêmica."""
 import re
 import sqlite3
 from urllib.parse import urlparse
