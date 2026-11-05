@@ -1,16 +1,16 @@
 # Le Cupcake — loja virtual de cupcakes (PIT II)
 
-**Versão:** 0.6 — protótipo acadêmico funcional ampliado. A marca e os produtos são **fictícios**. O sistema **não cobra pagamentos reais** nem envia e-mails/SMS.
+**Versão:** 0.2 — protótipo acadêmico funcional ampliado. A marca e os produtos são **fictícios**. O sistema **não cobra pagamentos reais** nem envia e-mails/SMS.
 
 O aplicativo dá continuidade ao planejamento da loja de cupcakes apresentado na disciplina **Projeto Integrador Transdisciplinar em Engenharia de Software I**. Não implementa as 25 histórias originais na íntegra; veja o mapeamento em [`docs/Mapa_25_Historias.md`](docs/Mapa_25_Historias.md).
 
-## Melhorias de usabilidade — versão 0.6 (04/11/2026)
+## Melhorias de usabilidade — versão 0.2 (04/11/2026)
 
 Após revisar as áreas não cobertas pelas fichas de verificação, foram incorporadas melhorias preventivas, sem alterar o visual principal: atalho de teclado para acessar o conteúdo, foco em mensagens de erro, orientação dinâmica entre entrega e retirada, valores estimados anunciados a tecnologias assistivas, tratamento de fotografias externas indisponíveis, pequenos ajustes para telas estreitas e respeito à preferência por movimento reduzido.
 
 **Verificação técnica:** 30 testes técnicos aprovados (27 originais + 3 novos). Também foram conferidos os fluxos principais de checkout e as larguras de 390 px e 320 px em Chromium local com HTML renderizado pela aplicação; nesses cenários, não houve rolagem horizontal. As fotografias originais permanecem inalteradas quando carregam corretamente.
 
-As alterações da versão 0.6 foram registradas como melhorias de usabilidade e verificadas por testes técnicos.
+As alterações da versão 0.2 foram registradas como melhorias de usabilidade e verificadas por testes técnicos.
 
 **Aplicação hospedada:** [https://le-cupcake.onrender.com/](https://le-cupcake.onrender.com/)
 
@@ -81,7 +81,7 @@ python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-Os testes técnicos incluem as verificações anteriores e também os novos cenários de acessibilidade, navegação e orientação de entrega da versão 0.6. Isso **não substitui** os **cinco testes com pessoas reais** exigidos pela universidade. Há um modelo para os registros humanos em `docs/Modelo_Avaliacao_5_Usuarios.md`.
+Os testes técnicos incluem as verificações anteriores e também os novos cenários de acessibilidade, navegação e orientação de entrega da versão 0.2. Isso **não substitui** os **cinco testes com pessoas reais** exigidos pela universidade. Há um modelo para os registros humanos em `docs/Modelo_Avaliacao_5_Usuarios.md`.
 
 ## Publicação no GitHub e hospedagem
 
@@ -118,7 +118,7 @@ instance/                  # Banco local (não publicar)
 ```
 
 
-## Fotografias reais e referências (atualização v0.3)
+## Fotografias reais e referências
 
 - As fotografias exibidas no catálogo, nas páginas de produtos e na administração são **fotografias reais de terceiros**, com fontes e licenças identificadas no documento de referências.
 - Fonte: **Wikimedia Commons**, com autor, página de origem e licença verificados individualmente.
@@ -131,12 +131,12 @@ instance/                  # Banco local (não publicar)
 **Licenciamento das fotografias:** algumas fotos têm licenças CC BY ou CC BY-SA que exigem atribuição em usos públicos. O arquivo Word reúne os créditos e links, mas, antes de publicar a loja abertamente, verifique como disponibilizar esses créditos de forma compatível com as licenças. Uma alternativa é usar exclusivamente fotografias em domínio público ou CC0.
 
 
-## Identidade visual preservada na versão 0.6
+## Identidade visual preservada na versão 0.2
 
 A paleta foi revisada e conferida em todas as páginas: verde-sálvia `#3D634D`,
 terracota `#B45C3C`, creme `#FFF8EC` e verde-claro `#DDE9D7`.
 A faixa acadêmica superior continua marrom (`#5A4143`).
-O endereço de `style.css` possui agora `?v=0.6` para evitar que o navegador
+O endereço dos arquivos estáticos utiliza identificadores de atualização para evitar que o navegador
 exiba estilos antigos guardados em cache.
 
 **Importante ao atualizar:** feche o servidor anterior e abra o
@@ -144,7 +144,7 @@ exiba estilos antigos guardados em cache.
 continuar antiga, pressione `Ctrl + F5` no navegador.
 
 
-## Como usar os recursos adicionados na versão 0.5
+## Recursos funcionais da versão 0.1 preservados na versão 0.2
 
 - **Cliente:** clique em **Entrar / Cadastrar** no cabeçalho. Crie uma conta com senha de pelo menos 12 caracteres. O carrinho permanece ao entrar, e os pedidos criados com a sessão autenticada aparecem em **Minha conta**. Pedidos anteriores feitos como visitante não são associados automaticamente.
 - **Cupom:** o administrador faz login em **Área administrativa → Cupons** e cria o código (percentual ou valor fixo, mínimo e limite de usos). O cliente informa o código no checkout. O valor final é verificado no servidor e aparece no resumo do pedido concluído. Cupom de pedido cancelado não consome o limite.
