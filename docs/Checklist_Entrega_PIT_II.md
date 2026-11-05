@@ -27,7 +27,7 @@ Este checklist acompanha a evolução da versão 0.1 para a versão 0.2, após a
 - [ ] Homologar a persistência SQLite no Render e não expor dados pessoais reais.
 - [ ] Conferir créditos/licenças das fotografias na página publicada.
 - [ ] Aprovar ou registrar com tutor as limitações incontornáveis do plano gratuito.
-- [ ] Substituir os arquivos oficiais desatualizados pelos documentos corrigidos da versão 0.2, mantendo as avaliações e o primeiro vídeo inalterados; após a publicação, atualizar links e evidências definitivas.
+- [ ] Garantir que o formulário oficial da branch tenha a mesma revisão encaminhada para a documentação da versão 0.2; substituir o relatório de atualização do sistema que ainda descreve 30 testes. Preservar as avaliações e o primeiro vídeo; inserir o link real do segundo vídeo e as evidências da publicação.
 - [ ] Publicar a versão 0.2 consolidada na `main` e no Render **somente após aprovação de teste**.
 - [ ] Gravar o segundo vídeo (até cinco minutos) demonstrando mudanças efetivas, mantendo o primeiro vídeo intacto.
 - [ ] Verificar os dois links de vídeo e a entrega exigida no AVA.
