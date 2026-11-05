@@ -1,6 +1,6 @@
 # Checklist de homologação PIT II — versão 0.2 consolidada (pré-publicação)
 
-Este checklist substitui o checklist de um MVP reduzido. Não é autorização para publicar a branch.
+Este checklist acompanha a evolução da versão 0.1 para a versão 0.2, após as cinco avaliações e a revisão das 25 histórias da PIT I. Não é autorização para publicar a branch.
 
 ## Evidências técnicas já verificadas localmente
 - [x] Trabalho original PIT I recuperado e 25 histórias registradas com critérios e limitações.
@@ -27,7 +27,7 @@ Este checklist substitui o checklist de um MVP reduzido. Não é autorização p
 - [ ] Homologar a persistência SQLite no Render e não expor dados pessoais reais.
 - [ ] Conferir créditos/licenças das fotografias na página publicada.
 - [ ] Aprovar ou registrar com tutor as limitações incontornáveis do plano gratuito.
-- [ ] Atualizar o formulário oficial, laudo final e dicionário conforme a versão realmente publicada.
+- [ ] Substituir os arquivos oficiais desatualizados pelos documentos corrigidos da versão 0.2, mantendo as avaliações e o primeiro vídeo inalterados; após a publicação, atualizar links e evidências definitivas.
 - [ ] Publicar a versão 0.2 consolidada na `main` e no Render **somente após aprovação de teste**.
 - [ ] Gravar o segundo vídeo (até cinco minutos) demonstrando mudanças efetivas, mantendo o primeiro vídeo intacto.
 - [ ] Verificar os dois links de vídeo e a entrega exigida no AVA.
