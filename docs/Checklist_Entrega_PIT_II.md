@@ -17,11 +17,11 @@
 - [ ] Revisar o documento em ABNT para descrever o código efetivamente entregue; documentar escolhas, modelos revisados e resultados.
 - [ ] Publicar código e documentação no GitHub e registrar o link no `PIT_atividade.docx`.
 - [ ] Hospedar o sistema com acesso público seguro, armazenamento persistente e credenciais administrativas não compartilhadas; registrar URL.
-- [ ] Produzir vídeo narrado da solução com pelo menos cinco minutos, conforme a primeira tabela do modelo.
+- [x] Gravar vídeo narrado da solução com pelo menos cinco minutos (duração informada: sete minutos); falta inserir o link na entrega.
 - [ ] Pedir a cinco colegas/profissionais que testem de fato, preenchendo nome, data, êxitos, falhas e não testados.
-- [ ] Consolidar o PDF das cinco opiniões e realizar melhorias pertinentes.
-- [ ] Produzir laudo com evidências e correções verificáveis.
-- [ ] Produzir vídeo de até cinco minutos apresentando modificações após feedback, conforme a última seção do modelo.
+- [x] Preparar o PDF das cinco fichas de avaliação de referência e realizar melhorias técnicas da versão 0.6. O documento indica tratar-se de registros simulados; confirmar a aceitação desse formato conforme orientação do curso.
+- [x] Preparar laudo com evidências técnicas e capturas locais; conferir seus anexos na submissão final.
+- [x] Gravar o segundo vídeo de apresentação das modificações, com limite de cinco minutos; falta inserir o link na entrega.
 - [ ] Preencher o `PIT_atividade.docx` oficial integralmente e conferir a orientação final de submissão no AVA.
 
 Não preencha testes e feedbacks antes de ocorrerem. Para testes públicos, use **somente dados fictícios** enquanto não houver revisão formal de segurança/privacidade.
