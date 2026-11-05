@@ -7,7 +7,7 @@
 - [x] Administração protegida por login, cadastro de produtos e gestão de pedidos.
 - [x] Contas de clientes e histórico de pedidos, cupons, avaliações moderadas, relatórios e opções de entrega configuráveis.
 - [x] Documentação de apoio ABNT preliminar, diagramas e protótipos do planejamento.
-- [x] Testes automatizados (27 casos aprovados).
+- [x] Testes técnicos de regressão (30 casos aprovados na versão 0.6).
 - [x] Manual do usuário, modelo de avaliação e mapeamento do escopo ainda pendente.
 
 ## Para completar os requisitos da PIT II
