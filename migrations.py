@@ -12,6 +12,10 @@ MIGRATIONS: dict[int, tuple[str, ...]] = {
         'CREATE INDEX IF NOT EXISTS idx_pedidos_criacao_status ON pedidos(criado_em, status)',
         'CREATE INDEX IF NOT EXISTS idx_auditoria_entidade_data ON auditoria(entidade, entidade_id, criado_em)',
     ),
+    2: (
+        'ALTER TABLE cupcakes ADD COLUMN excluido_em TEXT',
+        'CREATE INDEX IF NOT EXISTS idx_cupcakes_arquivados ON cupcakes(excluido_em, ativo)',
+    ),
 }
 
 
@@ -25,6 +29,12 @@ def apply_migrations(db: sqlite3.Connection) -> None:
         db.execute('SAVEPOINT schema_migration')
         try:
             for statement in MIGRATIONS[next_version]:
+                # Um banco legado pode possuir colunas da migração quando
+                # user_version foi reiniciado por uma ferramenta externa.
+                if statement == 'ALTER TABLE cupcakes ADD COLUMN excluido_em TEXT':
+                    present = {col[1] for col in db.execute('PRAGMA table_info(cupcakes)')}
+                    if 'excluido_em' in present:
+                        continue
                 db.execute(statement)
             db.execute(f'PRAGMA user_version = {next_version}')
             db.execute('RELEASE SAVEPOINT schema_migration')
