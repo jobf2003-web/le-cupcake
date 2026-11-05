@@ -7,7 +7,7 @@
 - [x] Administração protegida por login, cadastro de produtos e gestão de pedidos.
 - [x] Contas de clientes e histórico de pedidos, cupons, avaliações moderadas, relatórios e opções de entrega configuráveis.
 - [x] Documentação de apoio ABNT preliminar, diagramas e protótipos do planejamento.
-- [x] Testes técnicos de regressão (30 casos aprovados na versão 0.6).
+- [x] Testes técnicos de regressão (30 casos aprovados na versão 0.2).
 - [x] Manual do usuário, modelo de avaliação e mapeamento do escopo ainda pendente.
 
 ## Para completar os requisitos da PIT II
@@ -19,7 +19,7 @@
 - [ ] Hospedar o sistema com acesso público seguro, armazenamento persistente e credenciais administrativas não compartilhadas; registrar URL.
 - [x] Gravar vídeo narrado da solução com pelo menos cinco minutos (duração informada: sete minutos); falta inserir o link na entrega.
 - [ ] Pedir a cinco colegas/profissionais que testem de fato, preenchendo nome, data, êxitos, falhas e não testados.
-- [x] Preparar o PDF das cinco fichas de avaliação de referência e realizar melhorias técnicas da versão 0.6. O documento indica tratar-se de registros simulados; confirmar a aceitação desse formato conforme orientação do curso.
+- [x] Preparar o PDF das cinco fichas de avaliação de referência e realizar melhorias técnicas da versão 0.2. O documento indica tratar-se de registros simulados; confirmar a aceitação desse formato conforme orientação do curso.
 - [x] Preparar laudo com evidências técnicas e capturas locais; conferir seus anexos na submissão final.
 - [x] Gravar o segundo vídeo de apresentação das modificações, com limite de cinco minutos; falta inserir o link na entrega.
 - [ ] Preencher o `PIT_atividade.docx` oficial integralmente e conferir a orientação final de submissão no AVA.
