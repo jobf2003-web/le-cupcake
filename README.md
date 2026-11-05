@@ -99,7 +99,10 @@ Na entrega, conferir o acesso do tutor ao repositório (atualmente privado), os 
 
 ## Materiais da universidade ainda pendentes
 
-A aplicação está hospedada; os dois vídeos foram gravados e estão armazenados externamente, aguardando a inserção de seus links. As cinco fichas e o laudo de qualidade foram preparados em documentos separados. Antes da entrega, atualizar o modelo oficial `PIT_atividade.docx`, anexar ou indicar os documentos finais, conferir as permissões de acesso e revisar o conteúdo acadêmico.
+A aplicação está hospedada e o formulário oficial da disciplina está preenchido em [`docs/PIT_atividade_Le_Cupcake_Preenchida.docx`](docs/PIT_atividade_Le_Cupcake_Preenchida.docx), com os campos técnicos, as cinco fichas de avaliação, o resumo do laudo e os links de demonstração. **Antes da submissão ao AVA, preencher o nome e o RGM do estudante**, que foram deixados em branco para conferência.
+
+- [Vídeo 1 — apresentação narrada (mais de cinco minutos)](https://drive.google.com/file/d/1jj2vhp1Bgc8iYXeqt2CTQA2VwP723w0I/view?usp=drive_link)
+- [Vídeo 2 — apresentação das melhorias (até cinco minutos)](https://drive.google.com/file/d/1nOQRqD-nm-D74yi2mFbfxHf_bvSv64oa/view?usp=drive_link)
 
 A documentação ABNT preliminar está em `docs/Documentacao_ABNT.docx`. O relatório simplificado, também em padrão ABNT, está em `docs/Relatorio_Atualizacao_Sistema_ABNT.docx`. Nenhum deles substitui o formulário oficial preenchido após os testes reais. Os diagramas e wireframes de planejamento também ficam em `docs/diagramas`.
 
