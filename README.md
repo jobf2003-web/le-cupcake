@@ -59,7 +59,7 @@ O usuário é criado automaticamente quando o aplicativo inicia. Por segurança,
 - consulta e atualização do status de pedidos e restauração do estoque após cancelamento;
 - páginas responsivas, validações no servidor e tokens CSRF nos formulários.
 
-**Novidades da 0.5:** cadastro e login de clientes (senha protegida), página de pedidos da conta, avaliações com moderação e respostas do administrador, cupons de desconto com regras e desconto calculado no servidor, relatório de pedidos, configuração administrativa de entrega e campo opcional de informações nutricionais verificadas. A página do produto também mostra sugestões da mesma categoria.
+**Recursos consolidados na versão 0.1:** cadastro e login de clientes (senha protegida), página de pedidos da conta, avaliações com moderação e respostas do administrador, cupons de desconto com regras e desconto calculado no servidor, relatório de pedidos, configuração administrativa de entrega e campo opcional de informações nutricionais verificadas. A página do produto também mostra sugestões da mesma categoria.
 
 **Não funciona ainda:** pagamentos on-line, recuperação de senha por e-mail, disparo de e-mails/SMS, combos personalizados, agendamento de entregas, análise de receita recebida, avaliações verificadas por compra e recomendações personalizadas pelo histórico. Recursos parciais e pendentes estão no mapa das 25 histórias. Os dados de entrega exibidos são exemplos, não uma oferta real de logística.
 
