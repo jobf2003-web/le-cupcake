@@ -56,7 +56,7 @@ def test_catalog_has_eight_products(setup):
     assert 'Red Velvet' in result.text
     with sqlite3.connect(db_path) as db:
         assert db.execute('SELECT COUNT(*) FROM cupcakes').fetchone()[0] == 8
-        assert db.execute('SELECT COUNT(*) FROM sqlite_master WHERE type="table" AND name NOT LIKE "sqlite_%"').fetchone()[0] == 25
+        assert db.execute('SELECT COUNT(*) FROM sqlite_master WHERE type="table" AND name NOT LIKE "sqlite_%"').fetchone()[0] == 26
 
 
 def test_filter_and_search_parameterized(setup):

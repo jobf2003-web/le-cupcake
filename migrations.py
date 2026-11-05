@@ -39,6 +39,19 @@ MIGRATIONS: dict[int, tuple[str, ...]] = {
         )""",
         'CREATE INDEX IF NOT EXISTS idx_combo_componentes_item ON pedido_combo_componentes(pedido_item_id)',
     ),
+    5: (
+        'ALTER TABLE usuarios ADD COLUMN sessao_versao INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE cupcakes ADD COLUMN ingredientes TEXT',
+        """CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+            token_digest TEXT NOT NULL UNIQUE,
+            expiracao_em TEXT NOT NULL,
+            usado_em TEXT,
+            criado_em TEXT NOT NULL
+        )""",
+        'CREATE INDEX IF NOT EXISTS idx_reset_user_created ON password_reset_tokens(usuario_id,criado_em)',
+    ),
 }
 
 

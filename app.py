@@ -10,7 +10,7 @@ import json
 import os
 from contextlib import contextmanager
 from decimal import Decimal, InvalidOperation
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 from pathlib import Path
 import re
 import secrets
@@ -21,6 +21,7 @@ from photo_sources import PHOTOS, PRODUCT_PHOTO_KEYS, ALLOWED_PHOTO_URLS
 from commerce_delivery import frete_por_regiao, validar_agenda, cep_normalizado
 from commerce_combos import build_bundle, sanitize_combos, COMBO_NOME, MIN_PECAS, MAX_PECAS, MAX_COMBOS
 from migrations import apply_migrations
+from customer_relationship import send_password_reset_email, make_reset_digest, get_recommendations, active_promotions, valid_dates
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -120,10 +121,11 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
     templates.env.filters['reais'] = reais
     templates.env.filters['status_nome'] = lambda x: {'recebido':'Recebido', 'confirmado':'Confirmado', 'preparo':'Em preparo', 'pronto':'Pronto', 'em_entrega':'Em entrega', 'concluido':'Concluído', 'cancelado':'Cancelado'}.get(x, x)
     app.state.db_path = db_path
+    app.state.test_reset_links = [] if testing else None  # Somente testes; nunca renderizado em páginas.
 
     campos_produto = ('nome', 'descricao', 'categoria_id', 'preco_centavos',
                       'estoque', 'imagem_url', 'informacoes_nutricionais',
-                      'ativo', 'excluido_em')
+                      'ativo', 'excluido_em', 'ingredientes')
 
     def snapshot_produto(row):
         return {chave: row[chave] for chave in campos_produto}
@@ -176,6 +178,9 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                 db.executemany('INSERT INTO opcoes_entrega(tipo,descricao,custo_base_centavos) VALUES (?,?,?)',
                                [('retirada', 'Retirar na loja', 0),
                                 ('entrega', 'Entrega local (taxa fixa)', 800)])
+            # Catálogo administrativo de alergênicos. Não associar automaticamente a receitas desconhecidas.
+            for allergen in ('Leite', 'Ovos', 'Trigo (glúten)', 'Soja', 'Amendoim', 'Castanhas'):
+                db.execute('INSERT OR IGNORE INTO alergenos(nome) VALUES (?)', (allergen,))
             # Uma avaliação por cliente/produto, inclusive após migrar uma instalação anterior.
             db.execute('CREATE UNIQUE INDEX IF NOT EXISTS ux_avaliacoes_cliente_produto ON avaliacoes(usuario_id,cupcake_id)')
             # Atualiza apenas descrições antigas incluídas pela versão anterior.
@@ -261,8 +266,13 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         if not isinstance(user_id, int):
             return None
         with db_connect() as db:
-            return db.execute("SELECT id,nome,email,criado_em FROM usuarios WHERE id=? AND papel='cliente' AND ativo=1",
+            user = db.execute("SELECT id,nome,email,criado_em,sessao_versao FROM usuarios WHERE id=? AND papel='cliente' AND ativo=1",
                               (user_id,)).fetchone()
+            if user and int(request.session.get('customer_auth_version', 0)) != int(user['sessao_versao']):
+                request.session.pop('customer_id', None)
+                request.session.pop('customer_auth_version', None)
+                return None
+            return user
 
     def require_customer(request: Request):
         user = current_customer(request)
@@ -343,8 +353,12 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         products, search, category = select_catalog(busca, categoria)
         with db_connect() as db:
             categories = db.execute('SELECT nome FROM categorias WHERE ativa=1 ORDER BY id').fetchall()
+            customer = current_customer(request)
+            recommendations = get_recommendations(db, customer['id']) if customer else []
+            promotions = active_promotions(db)
         return page(request, 'index.html', products=products, categories=categories,
-                    busca=search, categoria=category)
+                    busca=search, categoria=category, recommendations=recommendations,
+                    promotions=promotions, recommendations_personalized=bool(customer))
 
     @app.get('/catalogo/resultados', response_class=HTMLResponse)
     def catalog_partial(request: Request, busca: str = '', categoria: str = ''):
@@ -367,13 +381,16 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             recommendations = db.execute('''SELECT id,nome,imagem_url,preco_centavos FROM cupcakes
                     WHERE categoria_id=? AND id<>? AND ativo=1 AND estoque>0 ORDER BY id LIMIT 3''',
                     (p['categoria_id'], product_id)).fetchall()
+            allergens = db.execute('''SELECT a.nome FROM alergenos a
+                    JOIN cupcake_alergenos ca ON ca.alergeno_id=a.id
+                    WHERE ca.cupcake_id=? ORDER BY a.nome''', (product_id,)).fetchall()
             already_reviewed = False
             customer = current_customer(request)
             if customer:
                 already_reviewed = bool(db.execute('SELECT 1 FROM avaliacoes WHERE usuario_id=? AND cupcake_id=?',
                                                  (customer['id'], product_id)).fetchone())
         return page(request, 'produto.html', product=p, reviews=reviews,
-                    recommendations=recommendations, already_reviewed=already_reviewed)
+                    recommendations=recommendations, already_reviewed=already_reviewed, allergens=allergens)
 
     @app.post('/carrinho/adicionar')
     async def add_cart(request: Request):
@@ -685,6 +702,7 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         request.session.clear()
         save_cart(request, saved_cart)
         request.session['customer_id'] = cid
+        request.session['customer_auth_version'] = 0
         flash(request, 'Sua conta foi criada com sucesso.', 'sucesso')
         return redirect('/minha-conta')
 
@@ -705,13 +723,100 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         request.session.clear()
         save_cart(request, cart)
         request.session['customer_id'] = user['id']
+        request.session['customer_auth_version'] = int(user['sessao_versao'])
         flash(request, 'Bem-vindo de volta!', 'sucesso')
         return redirect('/minha-conta')
+
+    @app.get('/conta/recuperar', response_class=HTMLResponse)
+    def password_recovery_form(request: Request):
+        return page(request, 'conta_recuperar.html', error=None, sent=False,
+                    enabled=bool(testing or send_password_reset_email.configured()))
+
+    @app.post('/conta/recuperar')
+    async def password_recovery(request: Request):
+        form = await valid_form(request)
+        email = str(form.get('email', '')).strip().lower()[:200]
+        enabled = bool(testing or send_password_reset_email.configured())
+        if not enabled:
+            return page(request, 'conta_recuperar.html', status_code=503,
+                        error='O envio de e-mail não está configurado neste ambiente de demonstração.',
+                        sent=False, enabled=False)
+        # Resposta idêntica para endereços existentes e desconhecidos.
+        with db_connect() as db:
+            user = db.execute("SELECT id,email FROM usuarios WHERE email=? AND papel='cliente' AND ativo=1", (email,)).fetchone()
+            if user:
+                since = datetime.now(timezone.utc) - timedelta(minutes=15)
+                recent = db.execute('''SELECT COUNT(*) FROM password_reset_tokens
+                    WHERE usuario_id=? AND criado_em>=?''', (user['id'], since.isoformat())).fetchone()[0]
+                if recent < 3:
+                    token = secrets.token_urlsafe(32)
+                    now = datetime.now(timezone.utc)
+                    db.execute('''INSERT INTO password_reset_tokens(usuario_id,token_digest,expiracao_em,criado_em)
+                        VALUES (?,?,?,?)''', (user['id'],make_reset_digest(token),
+                                            (now+timedelta(minutes=30)).isoformat(),now.isoformat()))
+                    if testing:
+                        app.state.test_reset_links.append(f'http://testserver/conta/redefinir/{token}')
+                    else:
+                        try:
+                            sent = send_password_reset_email(user['email'], token)
+                        except Exception:
+                            # Não expor detalhes de SMTP ou dados de conta no HTML.
+                            sent = False
+                        if not sent:
+                            db.execute('UPDATE password_reset_tokens SET usado_em=? WHERE token_digest=?',
+                                       (now.isoformat(),make_reset_digest(token)))
+        return page(request, 'conta_recuperar.html', sent=True, enabled=enabled, error=None)
+
+    def reset_token_user(db, token: str):
+        if not re.fullmatch(r'[A-Za-z0-9_-]{32,128}', token):
+            return None
+        return db.execute('''SELECT t.id,t.usuario_id FROM password_reset_tokens t
+                JOIN usuarios u ON u.id=t.usuario_id
+                WHERE t.token_digest=? AND t.usado_em IS NULL AND t.expiracao_em>?
+                AND u.ativo=1 AND u.papel='cliente' ''',
+                (make_reset_digest(token), datetime.now(timezone.utc).isoformat())).fetchone()
+
+    @app.get('/conta/redefinir/{token}', response_class=HTMLResponse)
+    def password_reset_form(request: Request, token: str):
+        with db_connect() as db:
+            valid = bool(reset_token_user(db, token))
+        response = page(request, 'conta_redefinir.html', token=token if valid else '', valid=valid,
+                        error=None)
+        response.headers['Cache-Control'] = 'no-store'
+        response.headers['Referrer-Policy'] = 'no-referrer'
+        return response
+
+    @app.post('/conta/redefinir/{token}')
+    async def password_reset(request: Request, token: str):
+        form = await valid_form(request)
+        password = str(form.get('senha', ''))
+        confirmation = str(form.get('confirmar', ''))
+        if not (12 <= len(password) <= 128) or password != confirmation:
+            return page(request, 'conta_redefinir.html', status_code=422, token=token,
+                        valid=True, error='Informe duas senhas idênticas de 12 a 128 caracteres.')
+        with db_connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            record = reset_token_user(db, token)
+            if not record:
+                return page(request, 'conta_redefinir.html', status_code=422,
+                            token='', valid=False, error='Link inválido, expirado ou já utilizado.')
+            now = datetime.now(timezone.utc).isoformat()
+            db.execute('UPDATE usuarios SET senha_hash=?,sessao_versao=sessao_versao+1 WHERE id=?',
+                       (hash_password(password), record['usuario_id']))
+            db.execute('''UPDATE password_reset_tokens SET usado_em=?
+                WHERE usuario_id=? AND usado_em IS NULL''', (now,record['usuario_id']))
+            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'usuarios',?,'redefinir senha')",
+                       (record['usuario_id'], record['usuario_id']))
+        request.session.pop('customer_id', None)
+        request.session.pop('customer_auth_version', None)
+        flash(request, 'Senha redefinida. Entre novamente.', 'sucesso')
+        return redirect('/conta/entrar')
 
     @app.post('/conta/sair')
     async def customer_logout(request: Request):
         await valid_form(request)
         request.session.pop('customer_id', None)
+        request.session.pop('customer_auth_version', None)
         flash(request, 'Você saiu da sua conta.', 'info')
         return redirect('/')
 
@@ -791,7 +896,10 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         admin_id(request)
         with db_connect() as db:
             categories = db.execute('SELECT * FROM categorias ORDER BY id').fetchall()
-        return page(request, 'admin_produto.html', product=None, categories=categories, error=None)
+        with db_connect() as db:
+            allergens = db.execute('SELECT * FROM alergenos ORDER BY nome').fetchall()
+        return page(request, 'admin_produto.html', product=None, categories=categories,
+                    allergens=allergens, selected_allergens=[], error=None)
 
     @app.get('/admin/produtos/{product_id}/editar', response_class=HTMLResponse)
     def edit_product(request: Request, product_id: int):
@@ -801,7 +909,12 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             categories = db.execute('SELECT * FROM categorias ORDER BY id').fetchall()
         if not product:
             raise HTTPException(404, 'Produto não encontrado.')
-        return page(request, 'admin_produto.html', product=product, categories=categories, error=None)
+        with db_connect() as db:
+            allergens = db.execute('SELECT * FROM alergenos ORDER BY nome').fetchall()
+            selected_allergens = [r[0] for r in db.execute(
+                'SELECT alergeno_id FROM cupcake_alergenos WHERE cupcake_id=?',(product_id,)).fetchall()]
+        return page(request, 'admin_produto.html', product=product, categories=categories,
+                    allergens=allergens, selected_allergens=selected_allergens, error=None)
 
     @app.post('/admin/produtos/salvar')
     async def save_product(request: Request):
@@ -810,6 +923,11 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         name = str(form.get('nome', '')).strip()[:100]
         description = str(form.get('descricao', '')).strip()[:500]
         nutrition = str(form.get('informacoes_nutricionais', '')).strip()[:1000]
+        ingredients = str(form.get('ingredientes', '')).strip()[:800]
+        try:
+            selected = {int(aid) for aid in form.getlist('alergenos')}
+        except ValueError:
+            selected = {-1}
         photo_key = str(form.get('imagem_id', 'chocolate')).strip()
         icon = PHOTOS.get(photo_key, {}).get('imagem_url', '')
         errors = []
@@ -833,6 +951,10 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             errors.append('Estoque inválido.')
         with db_connect() as db:
             categories = db.execute('SELECT * FROM categorias ORDER BY id').fetchall()
+            allergens = db.execute('SELECT * FROM alergenos ORDER BY nome').fetchall()
+            valid_allergens = {a['id'] for a in allergens}
+            if not selected.issubset(valid_allergens):
+                errors.append('Selecione apenas alergênicos cadastrados.')
             if not db.execute('SELECT id FROM categorias WHERE id=?', (category_id,)).fetchone():
                 errors.append('Categoria inválida.')
             if product_id and not db.execute('''SELECT id FROM cupcakes WHERE id=? AND excluido_em IS NULL''',
@@ -847,16 +969,27 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                         raise HTTPException(409, 'Produto excluído durante a edição.')
                     before = snapshot_produto(before_row)
                     db.execute('''UPDATE cupcakes SET categoria_id=?,nome=?,descricao=?,preco_centavos=?,
-                                  estoque=?,imagem_url=?,informacoes_nutricionais=? WHERE id=?''',
-                               (category_id, name, description, price, stock, icon, nutrition or None, product_id))
+                                  estoque=?,imagem_url=?,informacoes_nutricionais=?,ingredientes=? WHERE id=?''',
+                               (category_id, name, description, price, stock, icon, nutrition or None,
+                                ingredients or None, product_id))
                 else:
                     before = None
                     cur = db.execute('''INSERT INTO cupcakes(categoria_id,nome,descricao,preco_centavos,estoque,
-                                        imagem_url,informacoes_nutricionais) VALUES (?,?,?,?,?,?,?)''',
-                                     (category_id, name, description, price, stock, icon, nutrition or None))
+                                        imagem_url,informacoes_nutricionais,ingredientes) VALUES (?,?,?,?,?,?,?,?)''',
+                                     (category_id, name, description, price, stock, icon, nutrition or None,
+                                      ingredients or None))
                     product_id = cur.lastrowid
+                before_allergens = {r[0] for r in db.execute(
+                    'SELECT alergeno_id FROM cupcake_alergenos WHERE cupcake_id=?',(product_id,))}
+                db.execute('DELETE FROM cupcake_alergenos WHERE cupcake_id=?', (product_id,))
+                db.executemany('INSERT INTO cupcake_alergenos(cupcake_id,alergeno_id) VALUES (?,?)',
+                               [(product_id, aid) for aid in sorted(selected)])
                 after_row = db.execute('SELECT * FROM cupcakes WHERE id=?', (product_id,)).fetchone()
                 after = snapshot_produto(after_row)
+                if before_allergens != selected:
+                    db.execute('INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao) VALUES (?,?,?,?,?)',
+                               (user_id,'cupcakes',product_id,'editar alergenicos',
+                                json.dumps({'antes':sorted(before_allergens),'depois':sorted(selected)})))
                 if before is None or before != after:
                     auditar_produto(db, user_id, product_id,
                                    'criar produto' if before is None else 'editar produto', before, after)
@@ -866,7 +999,8 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                                 'Ajuste manual pelo administrador'))
         if errors:
             return page(request, 'admin_produto.html', status_code=422, product=None,
-                        categories=categories, error=' '.join(errors), form_values=dict(form))
+                        categories=categories, allergens=allergens, selected_allergens=sorted(selected),
+                        error=' '.join(errors), form_values=dict(form))
         flash(request, 'Produto salvo com sucesso.', 'sucesso')
         return redirect('/admin')
 
@@ -1001,6 +1135,10 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         form = await valid_form(request)
         code = str(form.get('codigo', '')).strip().upper()
         kind = str(form.get('tipo', ''))
+        start_date = str(form.get('valido_de','')).strip()
+        end_date = str(form.get('valido_ate','')).strip()
+        if not valid_dates(start_date,end_date):
+            raise HTTPException(422,'Datas inválidas ou intervalo de validade invertido.')
         try:
             amount = int(form.get('valor', -1)) if kind == 'percentual' else parse_brl(str(form.get('valor', '')))
             minimum = parse_brl(str(form.get('minimo', '0')))
@@ -1014,8 +1152,9 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             if db.execute('SELECT 1 FROM cupons WHERE codigo=?', (code,)).fetchone():
                 flash(request, 'Já existe um cupom com esse código.', 'erro')
                 return redirect('/admin/cupons')
-            db.execute('''INSERT INTO cupons(codigo,tipo,valor,valor_minimo_centavos,limite_uso,ativo)
-                         VALUES (?,?,?,?,?,1)''', (code,kind,amount,minimum,limit or None))
+            db.execute('''INSERT INTO cupons(codigo,tipo,valor,valor_minimo_centavos,limite_uso,
+                         valido_de,valido_ate,ativo) VALUES (?,?,?,?,?,?,?,1)''',
+                       (code,kind,amount,minimum,limit or None,start_date or None,end_date or None))
             db.execute("INSERT INTO auditoria(usuario_id,entidade,acao,descricao) VALUES (?,'cupons','criar',?)",(uid,code))
         flash(request, 'Cupom criado.', 'sucesso')
         return redirect('/admin/cupons')
