@@ -16,6 +16,29 @@ MIGRATIONS: dict[int, tuple[str, ...]] = {
         'ALTER TABLE cupcakes ADD COLUMN excluido_em TEXT',
         'CREATE INDEX IF NOT EXISTS idx_cupcakes_arquivados ON cupcakes(excluido_em, ativo)',
     ),
+    3: (
+        'ALTER TABLE pedidos ADD COLUMN cep_entrega TEXT',
+        'ALTER TABLE pedidos ADD COLUMN regiao_entrega_id INTEGER REFERENCES regioes_entrega(id)',
+        'ALTER TABLE pedidos ADD COLUMN agendado_para TEXT',
+        '''CREATE TABLE IF NOT EXISTS agenda_bloqueios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            opcao_entrega_id INTEGER NOT NULL REFERENCES opcoes_entrega(id),
+            data TEXT NOT NULL, motivo TEXT NOT NULL DEFAULT 'Fechado',
+            UNIQUE(opcao_entrega_id,data))''',
+        'CREATE INDEX IF NOT EXISTS idx_pedidos_agendados ON pedidos(janela_entrega_id,agendado_para,status)',
+        'CREATE INDEX IF NOT EXISTS idx_regioes_cep ON regioes_entrega(ativa,cep_inicio,cep_fim)',
+    ),
+    4: (
+        """CREATE TABLE IF NOT EXISTS pedido_combo_componentes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pedido_item_id INTEGER NOT NULL REFERENCES pedido_itens(id) ON DELETE CASCADE,
+            cupcake_id INTEGER NOT NULL REFERENCES cupcakes(id),
+            quantidade INTEGER NOT NULL CHECK(quantidade>0),
+            nome_snapshot TEXT NOT NULL,
+            preco_unitario_centavos INTEGER NOT NULL CHECK(preco_unitario_centavos>=0)
+        )""",
+        'CREATE INDEX IF NOT EXISTS idx_combo_componentes_item ON pedido_combo_componentes(pedido_item_id)',
+    ),
 }
 
 
@@ -31,9 +54,11 @@ def apply_migrations(db: sqlite3.Connection) -> None:
             for statement in MIGRATIONS[next_version]:
                 # Um banco legado pode possuir colunas da migração quando
                 # user_version foi reiniciado por uma ferramenta externa.
-                if statement == 'ALTER TABLE cupcakes ADD COLUMN excluido_em TEXT':
-                    present = {col[1] for col in db.execute('PRAGMA table_info(cupcakes)')}
-                    if 'excluido_em' in present:
+                if statement.startswith('ALTER TABLE ') and ' ADD COLUMN ' in statement:
+                    table = statement.split(' ')[2]
+                    column = statement.split(' ADD COLUMN ')[1].split(' ')[0]
+                    present = {col[1] for col in db.execute(f'PRAGMA table_info({table})')}
+                    if column in present:
                         continue
                 db.execute(statement)
             db.execute(f'PRAGMA user_version = {next_version}')

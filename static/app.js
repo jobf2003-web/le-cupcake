@@ -6,6 +6,13 @@
   const shipping = document.querySelector('#shipping-amount');
   const addressInput = document.querySelector('#endereco');
   const deliveryGuidance = document.querySelector('#delivery-guidance');
+  const cepField = document.querySelector('#cep-field');
+  const cepInput = document.querySelector('#cep');
+  const quoteError = document.querySelector('#shipping-error');
+  const scheduleField = document.querySelector('#schedule-fields');
+  const scheduleDate = document.querySelector('#data-agendada');
+  const scheduleWindow = document.querySelector('#janela-entrega');
+  let quoteSeq = 0;
   function asCurrency(cents) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100); }
   function refresh() {
     const choice = document.querySelector('input[name="opcao_entrega"]:checked');
@@ -20,17 +27,60 @@
     if (deliveryGuidance) deliveryGuidance.textContent = delivery
       ? 'Entrega selecionada. Preencha o endereço completo para concluir o pedido.'
       : 'Retirada selecionada. Não é necessário informar endereço.';
-    const cost = Number(choice.dataset.shipping || '0');
-    if (shipping) shipping.textContent = asCurrency(cost);
-    if (total) total.textContent = asCurrency(Number(total.dataset.subtotal || '0') + cost);
+    if (cepField) cepField.hidden = !delivery;
+    if (cepInput) {
+      cepInput.disabled = !delivery;
+      cepInput.required = delivery && cepInput.dataset.regionRequired === '1';
+    }
+    if (scheduleField && scheduleWindow) {
+      const matched = Array.from(scheduleWindow.querySelectorAll('option[data-option]'))
+        .filter(option => option.dataset.option === choice.value);
+      const hasSchedule = matched.length > 0;
+      scheduleField.hidden = !hasSchedule;
+      if (scheduleDate) { scheduleDate.disabled = !hasSchedule; scheduleDate.required = hasSchedule; }
+      scheduleWindow.disabled = !hasSchedule;
+      scheduleWindow.required = hasSchedule;
+      scheduleWindow.querySelectorAll('option[data-option]').forEach(option => {
+        option.hidden = option.dataset.option !== choice.value;
+        option.disabled = option.dataset.option !== choice.value;
+      });
+      if (scheduleWindow.selectedOptions.length && scheduleWindow.selectedOptions[0].disabled)
+        scheduleWindow.value = '';
+    }
+    const requestId = ++quoteSeq;
+    const baseCost = delivery ? Number(choice.dataset.shipping || '0') : 0;
+    if (shipping) shipping.textContent = asCurrency(baseCost);
+    if (total) total.textContent = asCurrency(Number(total.dataset.subtotal || '0') + baseCost);
+    if (quoteError) quoteError.textContent = '';
+    if (delivery && cepInput && cepInput.dataset.regionRequired === '1' && cepInput.value.replace(/\D/g, '').length !== 8) {
+      if (quoteError) quoteError.textContent = 'Informe o CEP para calcular o frete pela região.';
+      return;
+    }
+    const params = new URLSearchParams({ opcao_entrega: choice.value, cep: cepInput ? cepInput.value : '' });
+    fetch('/api/frete?' + params.toString()).then(async response => {
+      const payload = await response.json();
+      if (requestId !== quoteSeq) return;
+      if (!response.ok) throw new Error(payload.detail || 'Não foi possível calcular o frete.');
+      const fee = payload.frete_centavos;
+      if (shipping) shipping.textContent = asCurrency(fee);
+      if (total) total.textContent = asCurrency(Number(total.dataset.subtotal || '0') + fee);
+    }).catch(error => { if (requestId === quoteSeq && quoteError) quoteError.textContent = error.message; });
   }
   inputs.forEach(input => input.addEventListener('change', refresh));
+  if (cepInput) cepInput.addEventListener('input', function () { clearTimeout(cepInput._debounce); cepInput._debounce = setTimeout(refresh, 350); });
+  if (scheduleDate) {
+    const today = new Date();
+    const localDate = day => { const x = new Date(today.getFullYear(),today.getMonth(),today.getDate()+day); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); };
+    scheduleDate.min = localDate(0); scheduleDate.max = localDate(15);
+  }
   refresh();
+
+  // Em um formulário com erro, apresenta as orientações antes do reenvio.
   const checkoutErrors = document.querySelector('#checkout-errors');
   if (checkoutErrors) checkoutErrors.focus();
 
-  // Mantém as fotografias originais quando disponíveis.
-  // Se a origem externa falhar, informa a indisponibilidade no mesmo espaço.
+  // As fotos são mantidas intactas. Somente quando a origem externa falha,
+  // exibe-se uma identificação textual no mesmo espaço da imagem.
   const photoSelector = 'img.hero-photo, img.product-photo, img.detail-photo, img.cart-photo, img.admin-thumb, img.recommendation-photo';
   function setupPhotoFallbacks(root) {
     root.querySelectorAll(photoSelector).forEach(function (photo) {
@@ -48,6 +98,22 @@
     });
   }
   setupPhotoFallbacks(document);
+
+  // US-14: o preço visual é estimativo; o servidor recalcula cada componente e estoque.
+  const comboBuilder = document.querySelector('#combo-builder');
+  if (comboBuilder) {
+    const fields = comboBuilder.querySelectorAll('.combo-quantity');
+    function updateComboTotal() {
+      let qty=0, cents=0;
+      fields.forEach(input => { const q=Math.max(0,Number(input.value)||0);qty+=q;cents+=q*Number(input.dataset.price||0); });
+      const value=comboBuilder.querySelector('#combo-total');
+      const count=comboBuilder.querySelector('#combo-count');
+      if (value) value.textContent=asCurrency(cents);
+      if (count) count.textContent=String(qty);
+    }
+    fields.forEach(input=>input.addEventListener('input',updateComboTotal));
+    updateComboTotal();
+  }
 
   // US-02: filtros combinados e busca dinâmica, sem recarga; GET permanece como fallback sem JS.
   const form = document.querySelector('#catalogo-filtro');

@@ -10,7 +10,7 @@ import json
 import os
 from contextlib import contextmanager
 from decimal import Decimal, InvalidOperation
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 import re
 import secrets
@@ -18,6 +18,8 @@ import sqlite3
 from typing import Any
 
 from photo_sources import PHOTOS, PRODUCT_PHOTO_KEYS, ALLOWED_PHOTO_URLS
+from commerce_delivery import frete_por_regiao, validar_agenda, cep_normalizado
+from commerce_combos import build_bundle, sanitize_combos, COMBO_NOME, MIN_PECAS, MAX_PECAS, MAX_COMBOS
 from migrations import apply_migrations
 
 from fastapi import FastAPI, HTTPException, Request
@@ -167,6 +169,9 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                 current_photo = db.execute('SELECT imagem_url FROM cupcakes WHERE nome = ?', (name,)).fetchone()
                 if current_photo and (not current_photo['imagem_url'] or not current_photo['imagem_url'].startswith('https://')):
                     db.execute('UPDATE cupcakes SET imagem_url=? WHERE nome=?', (PHOTOS[photo_key]['imagem_url'], name))
+            if not db.execute('SELECT 1 FROM combos WHERE nome=?', (COMBO_NOME,)).fetchone():
+                db.execute('INSERT INTO combos(nome,descricao,preco_centavos) VALUES (?,?,0)',
+                           (COMBO_NOME,'Combinação do cliente, preços calculados por componente'))
             if not db.execute('SELECT 1 FROM opcoes_entrega LIMIT 1').fetchone():
                 db.executemany('INSERT INTO opcoes_entrega(tipo,descricao,custo_base_centavos) VALUES (?,?,?)',
                                [('retirada', 'Retirar na loja', 0),
@@ -222,6 +227,17 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
     def save_cart(request: Request, cart: dict[int, int]):
         request.session['cart'] = {str(k): v for k, v in cart.items()}
 
+    def read_combos(request: Request) -> list[dict[int,int]]:
+        return sanitize_combos(request.session.get('custom_combos', []))
+
+    def save_combos(request: Request, combos: list[dict[int,int]]):
+        request.session['custom_combos'] = [{str(k):v for k,v in item.items()} for item in combos]
+
+    def bundle_cart(db: sqlite3.Connection, request: Request):
+        lines, subtotal = cart_lines(db, read_cart(request))
+        combos, combo_total, allocations, all_available = build_bundle(db, read_cart(request), read_combos(request))
+        return lines, combos, subtotal+combo_total, allocations, all_available
+
     def cart_lines(db: sqlite3.Connection, cart: dict[int, int]):
         if not cart:
             return [], 0
@@ -276,7 +292,8 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
 
     def page(request: Request, filename: str, *, status_code: int = 200, **context):
         message = request.session.pop('flash', None)
-        context.update(photos=PHOTOS, cart_count=sum(read_cart(request).values()), csrf=csrf(request),
+        context.update(photos=PHOTOS, cart_count=sum(read_cart(request).values())+
+                       sum(sum(c.values()) for c in read_combos(request)), csrf=csrf(request),
                        flash=message, admin=bool(request.session.get('admin_id')),
                        path=request.url.path, customer=current_customer(request))
         return templates.TemplateResponse(request, filename, context, status_code=status_code)
@@ -381,11 +398,63 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         flash(request, f'{p["nome"]} adicionado ao carrinho.', 'sucesso')
         return redirect('/carrinho')
 
+    @app.get('/combos', response_class=HTMLResponse)
+    def combo_builder(request: Request):
+        with db_connect() as db:
+            products = db.execute('''SELECT id,nome,preco_centavos,estoque FROM cupcakes
+                WHERE ativo=1 AND excluido_em IS NULL AND estoque>0 ORDER BY id''').fetchall()
+        return page(request,'combos.html',products=products,min_pieces=MIN_PECAS,max_pieces=MAX_PECAS)
+
+    @app.post('/combos/adicionar')
+    async def add_combo(request: Request):
+        form=await valid_form(request)
+        raw={}
+        for k,v in form.multi_items():
+            if not k.startswith('q_'):
+                continue
+            try:
+                product_id, qty=int(k[2:]),int(v)
+            except (TypeError,ValueError):
+                raise HTTPException(422,'Quantidade inválida para combo.')
+            if qty<0 or qty>MAX_PECAS:
+                raise HTTPException(422,'Quantidade de combo fora do limite.')
+            if qty:
+                raw[str(product_id)] = qty
+        combination=sanitize_combos([raw])
+        if not combination:
+            raise HTTPException(422,f'Monte um combo com {MIN_PECAS} a {MAX_PECAS} cupcakes.')
+        combos=read_combos(request)
+        if len(combos)>=MAX_COMBOS:
+            raise HTTPException(422,'Limite de combos do carrinho atingido.')
+        combos.append(combination[0])
+        with db_connect() as db:
+            _,_,_,available=build_bundle(db,read_cart(request),combos)
+            if not available:
+                raise HTTPException(422,'Estoque insuficiente para a composição do combo.')
+        save_combos(request,combos)
+        flash(request,'Combo personalizado adicionado ao carrinho.','sucesso')
+        return redirect('/carrinho')
+
+    @app.post('/combos/remover')
+    async def remove_combo(request: Request):
+        form=await valid_form(request)
+        try:
+            index=int(form.get('indice','-1'))
+        except (TypeError,ValueError):
+            raise HTTPException(422,'Combo inválido.')
+        combos=read_combos(request)
+        if index<0 or index>=len(combos):
+            raise HTTPException(422,'Combo não encontrado no carrinho.')
+        combos.pop(index)
+        save_combos(request,combos)
+        return redirect('/carrinho')
+
     @app.get('/carrinho', response_class=HTMLResponse)
     def shopping_cart(request: Request):
         with db_connect() as db:
-            lines, subtotal = cart_lines(db, read_cart(request))
-        return page(request, 'carrinho.html', lines=lines, subtotal=subtotal)
+            lines, combos, subtotal, allocations, all_available = bundle_cart(db,request)
+        return page(request, 'carrinho.html', lines=lines, combos=combos,
+                    subtotal=subtotal, all_available=all_available)
 
     @app.post('/carrinho/atualizar')
     async def update_cart(request: Request):
@@ -423,16 +492,33 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         flash(request, 'Item removido.', 'info')
         return redirect('/carrinho')
 
+    @app.get('/api/frete')
+    def shipping_quote(opcao_entrega: int, cep: str = ''):
+        with db_connect() as db:
+            option = db.execute('SELECT * FROM opcoes_entrega WHERE id=? AND ativa=1', (opcao_entrega,)).fetchone()
+            if not option:
+                raise HTTPException(422, 'Modalidade de recebimento indisponível.')
+            try:
+                fee, region_id = frete_por_regiao(db, option, cep)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
+        return {'frete_centavos':fee, 'regiao_id':region_id,
+                'demonstrativo':True, 'descricao':'Taxa local configurada; não é cotação de transportadora.'}
+
     @app.get('/checkout', response_class=HTMLResponse)
     def checkout_form(request: Request):
         with db_connect() as db:
-            lines, subtotal = cart_lines(db, read_cart(request))
+            lines, combo_lines, subtotal, allocations, all_available = bundle_cart(db,request)
             shipping = db.execute('SELECT * FROM opcoes_entrega WHERE ativa=1 ORDER BY custo_base_centavos').fetchall()
-        if not lines:
-            flash(request, 'Adicione cupcakes ao carrinho antes de finalizar.', 'erro')
+            windows = db.execute('''SELECT j.*,o.tipo FROM janelas_entrega j JOIN opcoes_entrega o
+                          ON o.id=j.opcao_entrega_id WHERE o.ativa=1 ORDER BY j.inicio''').fetchall()
+            region_count = db.execute('SELECT COUNT(*) FROM regioes_entrega WHERE ativa=1').fetchone()[0]
+        if not lines and not combo_lines:
+            flash(request, 'Adicione cupcakes ou combos ao carrinho antes de finalizar.', 'erro')
             return redirect('/carrinho')
         user = current_customer(request)
-        return page(request, 'checkout.html', lines=lines, subtotal=subtotal, shipping=shipping,
+        return page(request, 'checkout.html', lines=lines, combos=combo_lines, subtotal=subtotal, shipping=shipping,
+                    windows=windows, region_count=region_count,
                     values={'nome':user['nome'],'email':user['email']} if user else {}, errors=[])
 
     @app.post('/checkout')
@@ -444,6 +530,12 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         phone = str(form.get('telefone', '')).strip()[:30]
         address = str(form.get('endereco', '')).strip()[:400]
         coupon_code = str(form.get('cupom', '')).strip().upper()[:30]
+        cep = str(form.get('cep', '')).strip()[:12]
+        scheduled_for = str(form.get('data_agendada', '')).strip()[:30]
+        try:
+            window_id = int(form.get('janela_entrega', '0') or '0')
+        except (ValueError, TypeError):
+            window_id = 0
         try:
             shipping_id = int(form.get('opcao_entrega', '0'))
         except (ValueError, TypeError):
@@ -456,10 +548,21 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         if len(re.sub(r'\D', '', phone)) < 10:
             errors.append('Informe um telefone com DDD.')
         with db_connect() as db:
-            lines, subtotal = cart_lines(db, cart)
+            lines, combo_lines, subtotal, allocations, all_available = bundle_cart(db,request)
             shipping = db.execute('SELECT * FROM opcoes_entrega WHERE ativa=1 ORDER BY custo_base_centavos').fetchall()
+            windows = db.execute('''SELECT j.*,o.tipo FROM janelas_entrega j JOIN opcoes_entrega o
+                          ON o.id=j.opcao_entrega_id WHERE o.ativa=1 ORDER BY j.inicio''').fetchall()
+            region_count = db.execute('SELECT COUNT(*) FROM regioes_entrega WHERE ativa=1').fetchone()[0]
             ship = db.execute('SELECT * FROM opcoes_entrega WHERE id=? AND ativa=1', (shipping_id,)).fetchone()
-        if not lines:
+            if ship:
+                try:
+                    if ship['tipo']=='entrega' and cep:
+                        cep_normalizado(cep)
+                    frete_por_regiao(db, ship, cep)
+                    validar_agenda(db, shipping_id, scheduled_for, window_id)
+                except ValueError as exc:
+                    errors.append(str(exc))
+        if not lines and not combo_lines:
             errors.append('O carrinho está vazio.')
         if not ship:
             errors.append('Escolha uma modalidade de entrega.')
@@ -470,40 +573,38 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                 discount_for(db, coupon_code, subtotal)
         except ValueError as exc:
             errors.append(str(exc))
-        if any(not x['available'] for x in lines):
-            errors.append('Há itens indisponíveis ou sem estoque suficiente no carrinho.')
+        if any(not x['available'] for x in lines) or not all_available:
+            errors.append('Há itens indisponíveis ou sem estoque suficiente no carrinho e combos.')
         if errors:
-            return page(request, 'checkout.html', status_code=422, lines=lines,
-                        subtotal=subtotal, shipping=shipping, values=dict(form), errors=errors)
+            return page(request, 'checkout.html', status_code=422, lines=lines, combos=combo_lines,
+                        subtotal=subtotal, shipping=shipping, windows=windows, region_count=region_count,
+                        values=dict(form), errors=errors)
         token = secrets.token_urlsafe(24)
         try:
             with db_connect() as db:
                 db.execute('BEGIN IMMEDIATE')
-                for line in lines:
-                    p = line['product']
-                    actual = db.execute('''SELECT id, nome, estoque, preco_centavos FROM cupcakes
-                                           WHERE id=? AND ativo=1''', (p['id'],)).fetchone()
-                    if not actual or actual['estoque'] < line['qty']:
-                        raise ValueError('Um dos produtos acabou de ficar indisponível. Volte ao carrinho.')
-                subtotal_real = 0
-                for line in lines:
-                    p = db.execute('SELECT preco_centavos FROM cupcakes WHERE id=?', (line['product']['id'],)).fetchone()
-                    subtotal_real += p['preco_centavos'] * line['qty']
+                lines_now, combos_now, subtotal_real, allocations, all_available = bundle_cart(db,request)
+                if not all_available or any(not line['available'] for line in lines_now):
+                    raise ValueError('Estoque insuficiente para os itens e combos. Volte ao carrinho.')
                 ship_now = db.execute('SELECT * FROM opcoes_entrega WHERE id=? AND ativa=1', (shipping_id,)).fetchone()
                 if ship_now is None:
                     raise ValueError('A forma de entrega não está mais disponível.')
-                freight = int(ship_now['custo_base_centavos'])
+                freight, region_id = frete_por_regiao(db, ship_now, cep)
+                date_selected, window_selected = validar_agenda(db, shipping_id, scheduled_for, window_id)
                 coupon, discount = discount_for(db, coupon_code, subtotal_real)
                 total = subtotal_real + freight - discount
                 logged = current_customer(request)
                 cur = db.execute('''INSERT INTO pedidos(usuario_id,opcao_entrega_id, contato_nome,contato_email,contato_telefone,
-                    endereco_entrega,token_acesso,subtotal_centavos,frete_centavos,desconto_centavos,total_centavos)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?)''', (logged['id'] if logged else None, shipping_id, name, email, phone,
-                    address if ship_now['tipo']=='entrega' else None, token, subtotal_real, freight, discount, total))
+                    endereco_entrega,token_acesso,subtotal_centavos,frete_centavos,desconto_centavos,total_centavos,
+                    cep_entrega,regiao_entrega_id,agendado_para,janela_entrega_id)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', (logged['id'] if logged else None, shipping_id, name, email, phone,
+                    address if ship_now['tipo']=='entrega' else None, token, subtotal_real, freight, discount, total,
+                    cep_normalizado(cep) if ship_now['tipo']=='entrega' and cep.strip() else None,
+                    region_id, date_selected, window_selected))
                 order_id = cur.lastrowid
                 if coupon:
                     db.execute('INSERT INTO cupom_utilizacoes(cupom_id,pedido_id) VALUES (?,?)', (coupon['id'], order_id))
-                for line in lines:
+                for line in lines_now:
                     p = db.execute('SELECT id,nome,preco_centavos FROM cupcakes WHERE id=?', (line['product']['id'],)).fetchone()
                     changed = db.execute('UPDATE cupcakes SET estoque=estoque-? WHERE id=? AND estoque>=?',
                                          (line['qty'], p['id'], line['qty']))
@@ -513,6 +614,22 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                         VALUES (?,?,?,?,?)''', (order_id, p['id'], p['nome'], line['qty'], p['preco_centavos']))
                     db.execute('INSERT INTO estoque_movimentos(cupcake_id,pedido_id,variacao,motivo) VALUES (?,?,?,?)',
                                (p['id'], order_id, -line['qty'], 'Pedido recebido'))
+                if combos_now:
+                    default_combo=db.execute('SELECT id FROM combos WHERE nome=?',(COMBO_NOME,)).fetchone()
+                    if default_combo is None:
+                        raise ValueError('Configuração de combos não encontrada.')
+                    for combo in combos_now:
+                        itemcur=db.execute('''INSERT INTO pedido_itens(pedido_id,combo_id,nome_snapshot,quantidade,preco_unitario_centavos)
+                            VALUES (?,?,?,?,?)''',(order_id,default_combo['id'],COMBO_NOME,1,combo['total']))
+                        for part in combo['parts']:
+                            changed=db.execute('UPDATE cupcakes SET estoque=estoque-? WHERE id=? AND estoque>=? AND ativo=1',
+                                         (part['qty'],part['id'],part['qty']))
+                            if changed.rowcount != 1:
+                                raise ValueError('Estoque insuficiente para o combo. Revise o carrinho.')
+                            db.execute('''INSERT INTO pedido_combo_componentes(pedido_item_id,cupcake_id,quantidade,nome_snapshot,preco_unitario_centavos)
+                                VALUES (?,?,?,?,?)''',(itemcur.lastrowid,part['id'],part['qty'],part['nome'],part['price']))
+                            db.execute('''INSERT INTO estoque_movimentos(cupcake_id,pedido_id,variacao,motivo)
+                                VALUES (?,?,?,?)''',(part['id'],order_id,-part['qty'],'Combo personalizado no pedido'))
                 db.execute('INSERT INTO eventos_pedido(pedido_id,status,observacao) VALUES (?, ?, ?)',
                            (order_id, 'recebido', 'Pedido registrado pelo site'))
                 db.execute('''INSERT INTO pagamentos(pedido_id,metodo,provedor,status,valor_centavos)
@@ -521,6 +638,7 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             flash(request, str(exc), 'erro')
             return redirect('/carrinho')
         save_cart(request, {})
+        save_combos(request, [])
         return redirect(f'/pedido/{token}')
 
     @app.get('/pedido/{token}', response_class=HTMLResponse)
@@ -534,7 +652,14 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             if not order:
                 raise HTTPException(404, 'Pedido não encontrado.')
             items = db.execute('SELECT * FROM pedido_itens WHERE pedido_id=?', (order['id'],)).fetchall()
-        return page(request, 'pedido.html', order=order, items=items)
+            slot = db.execute('SELECT inicio,fim FROM janelas_entrega WHERE id=?', (order['janela_entrega_id'],)).fetchone() if order['janela_entrega_id'] else None
+            components = db.execute('''SELECT pc.pedido_item_id,pc.nome_snapshot,pc.quantidade FROM pedido_combo_componentes pc
+                        JOIN pedido_itens i ON i.id=pc.pedido_item_id WHERE i.pedido_id=?''', (order['id'],)).fetchall()
+            components_by_line = {}
+            for comp in components:
+                components_by_line.setdefault(comp['pedido_item_id'], []).append(comp)
+        return page(request, 'pedido.html', order=order, items=items, slot=slot,
+                    components_by_line=components_by_line)
 
     @app.get('/conta/cadastrar', response_class=HTMLResponse)
     def register_form(request: Request):
@@ -821,8 +946,10 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
     def admin_orders(request: Request):
         admin_id(request)
         with db_connect() as db:
-            orders = db.execute('''SELECT p.*, o.descricao entrega FROM pedidos p JOIN opcoes_entrega o ON o.id=p.opcao_entrega_id
-                                   ORDER BY p.id DESC LIMIT 150''').fetchall()
+            orders = db.execute('''SELECT p.*, o.descricao entrega, j.inicio janela_inicio, j.fim janela_fim
+                       FROM pedidos p JOIN opcoes_entrega o ON o.id=p.opcao_entrega_id
+                       LEFT JOIN janelas_entrega j ON j.id=p.janela_entrega_id
+                       ORDER BY p.id DESC LIMIT 150''').fetchall()
         return page(request, 'admin_pedidos.html', orders=orders, next_status=NEXT_STATUS)
 
     @app.post('/admin/pedidos/{order_id}/status')
@@ -846,6 +973,12 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                         db.execute('UPDATE cupcakes SET estoque=estoque+? WHERE id=?', (item['quantidade'], item['cupcake_id']))
                         db.execute('INSERT INTO estoque_movimentos(cupcake_id,pedido_id,variacao,motivo) VALUES (?,?,?,?)',
                                    (item['cupcake_id'], order_id, item['quantidade'], 'Pedido cancelado'))
+                parts = db.execute('''SELECT pc.cupcake_id,pc.quantidade FROM pedido_combo_componentes pc
+                        JOIN pedido_itens i ON i.id=pc.pedido_item_id WHERE i.pedido_id=?''',(order_id,)).fetchall()
+                for part in parts:
+                    db.execute('UPDATE cupcakes SET estoque=estoque+? WHERE id=?', (part['quantidade'],part['cupcake_id']))
+                    db.execute('''INSERT INTO estoque_movimentos(cupcake_id,pedido_id,variacao,motivo)
+                        VALUES (?,?,?,?)''',(part['cupcake_id'],order_id,part['quantidade'],'Combo cancelado'))
             db.execute('UPDATE pedidos SET status=? WHERE id=?', (target, order_id))
             db.execute('INSERT INTO eventos_pedido(pedido_id,status,observacao) VALUES (?,?,?)',
                        (order_id, target, 'Atualizado pela administração'))
@@ -946,7 +1079,13 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         admin_id(request)
         with db_connect() as db:
             options = db.execute('SELECT * FROM opcoes_entrega ORDER BY id').fetchall()
-        return page(request, 'admin_entregas.html', options=options)
+            regions = db.execute('SELECT * FROM regioes_entrega ORDER BY cep_inicio,id').fetchall()
+            windows = db.execute('''SELECT j.*,o.descricao opcao FROM janelas_entrega j JOIN opcoes_entrega o
+                             ON o.id=j.opcao_entrega_id ORDER BY j.opcao_entrega_id,j.inicio''').fetchall()
+            blackouts = db.execute('''SELECT b.*,o.descricao opcao FROM agenda_bloqueios b JOIN opcoes_entrega o
+                              ON b.opcao_entrega_id=o.id ORDER BY b.data''').fetchall()
+        return page(request, 'admin_entregas.html', options=options, regions=regions,
+                    windows=windows, blackouts=blackouts)
 
     @app.post('/admin/entregas/{delivery_id}/salvar')
     async def update_delivery(request: Request, delivery_id: int):
@@ -959,15 +1098,113 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         if len(description)<4:
             raise HTTPException(422, 'Informe uma descrição válida.')
         with db_connect() as db:
-            target = db.execute('SELECT id,ativa FROM opcoes_entrega WHERE id=?',(delivery_id,)).fetchone()
+            target = db.execute('SELECT id,tipo,ativa FROM opcoes_entrega WHERE id=?',(delivery_id,)).fetchone()
             if not target: raise HTTPException(404, 'Modalidade não encontrada.')
             if not active and target['ativa'] and db.execute('SELECT COUNT(*) FROM opcoes_entrega WHERE ativa=1').fetchone()[0]<=1:
                 flash(request, 'Mantenha pelo menos uma modalidade ativa.', 'erro')
                 return redirect('/admin/entregas')
+            if target['tipo']=='retirada':
+                cost=0
             db.execute('UPDATE opcoes_entrega SET descricao=?,custo_base_centavos=?,ativa=? WHERE id=?',
                        (description,cost,int(active),delivery_id))
             db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'opcoes_entrega',?,'editar')",(uid,delivery_id))
         flash(request, 'Modalidade de entrega salva.', 'sucesso')
+        return redirect('/admin/entregas')
+
+    @app.post('/admin/entregas/regioes/criar')
+    async def admin_create_region(request: Request):
+        uid = admin_id(request)
+        f = await valid_form(request)
+        description = str(f.get('descricao', '')).strip()[:100]
+        try:
+            start, end = cep_normalizado(f.get('cep_inicio','')), cep_normalizado(f.get('cep_fim',''))
+            value = parse_brl(str(f.get('adicional','0')))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        if not description or start > end:
+            raise HTTPException(422, 'Informe descrição e intervalo de CEP em ordem crescente.')
+        with db_connect() as db:
+            overlap = db.execute('''SELECT 1 FROM regioes_entrega WHERE ativa=1
+                               AND cep_inicio<=? AND cep_fim>=? LIMIT 1''', (end,start)).fetchone()
+            if overlap:
+                raise HTTPException(422, 'Esta faixa se sobrepõe a outra região ativa.')
+            cur = db.execute('''INSERT INTO regioes_entrega(descricao,cep_inicio,cep_fim,taxa_adicional_centavos)
+                                VALUES (?,?,?,?)''', (description,start,end,value))
+            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'regioes_entrega',?,'criar')",(uid,cur.lastrowid))
+        flash(request, 'Região atendida cadastrada.', 'sucesso')
+        return redirect('/admin/entregas')
+
+    @app.post('/admin/entregas/regioes/{region_id}/alternar')
+    async def admin_toggle_region(request: Request, region_id: int):
+        uid = admin_id(request)
+        await valid_form(request)
+        with db_connect() as db:
+            region = db.execute('SELECT * FROM regioes_entrega WHERE id=?',(region_id,)).fetchone()
+            if not region: raise HTTPException(404, 'Região inexistente.')
+            if not region['ativa']:
+                overlap = db.execute('''SELECT 1 FROM regioes_entrega WHERE ativa=1 AND id<>?
+                            AND cep_inicio<=? AND cep_fim>=?''', (region_id,region['cep_fim'],region['cep_inicio'])).fetchone()
+                if overlap: raise HTTPException(422, 'Há sobreposição com uma região ativa.')
+            db.execute('UPDATE regioes_entrega SET ativa=? WHERE id=?',(0 if region['ativa'] else 1,region_id))
+            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'regioes_entrega',?,'alternar')",(uid,region_id))
+        return redirect('/admin/entregas')
+
+    @app.post('/admin/entregas/janelas/criar')
+    async def admin_create_window(request: Request):
+        uid=admin_id(request)
+        f=await valid_form(request)
+        try:
+            option_id,capacity=int(f.get('opcao_entrega','0')),int(f.get('capacidade','0'))
+        except (ValueError,TypeError):
+            raise HTTPException(422, 'Modalidade ou capacidade inválida.')
+        start,end=str(f.get('inicio','')).strip(),str(f.get('fim','')).strip()
+        if not re.fullmatch(r'\d{2}:\d{2}',start) or not re.fullmatch(r'\d{2}:\d{2}',end) or not '00:00' <= start < end <= '23:59' or capacity < 1 or capacity > 999:
+            raise HTTPException(422, 'Informe horário HH:MM e capacidade entre 1 e 999.')
+        if int(start[:2])>23 or int(end[:2])>23 or int(start[3:])>59 or int(end[3:])>59:
+            raise HTTPException(422, 'Hora fora do intervalo permitido.')
+        with db_connect() as db:
+            if not db.execute('SELECT 1 FROM opcoes_entrega WHERE id=?',(option_id,)).fetchone():
+                raise HTTPException(422, 'Modalidade inexistente.')
+            overlap=db.execute('''SELECT 1 FROM janelas_entrega WHERE opcao_entrega_id=?
+                          AND inicio<? AND fim>?''',(option_id,end,start)).fetchone()
+            if overlap: raise HTTPException(422,'Horário sobreposto a outra janela de atendimento.')
+            cur=db.execute('''INSERT INTO janelas_entrega(opcao_entrega_id,inicio,fim,capacidade) VALUES (?,?,?,?)''',
+                       (option_id,start,end,capacity))
+            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'janelas_entrega',?,'criar')",(uid,cur.lastrowid))
+        flash(request,'Horário de atendimento salvo.','sucesso')
+        return redirect('/admin/entregas')
+
+    @app.post('/admin/entregas/bloqueios/criar')
+    async def admin_block_schedule(request: Request):
+        uid=admin_id(request)
+        f=await valid_form(request)
+        try:
+            option_id=int(f.get('opcao_entrega','0'))
+            block_date=date.fromisoformat(str(f.get('data','')))
+        except (ValueError,TypeError):
+            raise HTTPException(422, 'Data ou modalidade inválida.')
+        if block_date < date.today():
+            raise HTTPException(422,'Não é permitido bloquear data passada.')
+        with db_connect() as db:
+            if not db.execute('SELECT 1 FROM opcoes_entrega WHERE id=?',(option_id,)).fetchone():
+                raise HTTPException(422,'Modalidade inexistente.')
+            try:
+                cur=db.execute('INSERT INTO agenda_bloqueios(opcao_entrega_id,data,motivo) VALUES (?,?,?)',
+                             (option_id,block_date.isoformat(),str(f.get('motivo','Fechado')).strip()[:150]))
+            except sqlite3.IntegrityError:
+                raise HTTPException(422,'Data já bloqueada para esta modalidade.') from None
+            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'agenda_bloqueios',?,'criar')",(uid,cur.lastrowid))
+        return redirect('/admin/entregas')
+
+    @app.post('/admin/entregas/bloqueios/{block_id}/remover')
+    async def admin_unblock_schedule(request: Request, block_id: int):
+        uid=admin_id(request)
+        await valid_form(request)
+        with db_connect() as db:
+            if not db.execute('SELECT 1 FROM agenda_bloqueios WHERE id=?',(block_id,)).fetchone():
+                raise HTTPException(404,'Bloqueio não encontrado.')
+            db.execute('DELETE FROM agenda_bloqueios WHERE id=?',(block_id,))
+            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'agenda_bloqueios',?,'remover')",(uid,block_id))
         return redirect('/admin/entregas')
 
     @app.get('/admin/clientes', response_class=HTMLResponse)

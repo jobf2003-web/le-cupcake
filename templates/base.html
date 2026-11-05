@@ -16,6 +16,7 @@
       <a class="brand" href="/" aria-label="Le Cupcake, página inicial"><span class="brand-icon" aria-hidden="true">LC</span><span>Le <strong>Cupcake</strong><small>cupcakes & afeto</small></span></a>
       <nav class="nav" aria-label="Navegação principal">
         <a href="/" {% if path == '/' %}aria-current="page"{% endif %}>Cardápio</a>
+        <a href="/combos">Monte seu combo</a>
         <a href="/carrinho" {% if path == '/carrinho' %}aria-current="page"{% endif %}>Carrinho <span class="cart-count">{{ cart_count }}</span></a>
         {% if customer %}<a href="/minha-conta" {% if path == '/minha-conta' %}aria-current="page"{% endif %}>Minha conta</a>
         <form action="/conta/sair" method="post" class="inline-form"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="link-button" type="submit">Sair da conta</button></form>
