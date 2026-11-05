@@ -1,6 +1,6 @@
 # Le Cupcake — Etapa 2, ciclo A: implementação inicial da versão 0.2
 
-**Estado:** código implementado e testado localmente, **ainda não publicado**. Este ciclo é uma parte da implementação da versão **0.2**, não uma versão 0.3 nem uma implementação completa das 25 histórias.
+**Estado:** código implementado e testado localmente, **ainda não publicado**. Este ciclo é a primeira parte da implementação da versão **0.2**, desenvolvida após as avaliações e a revisão do escopo da PIT I; não equivale à implementação completa das 25 histórias.
 
 ## 1. Contexto e evolução
 
@@ -24,7 +24,7 @@ A **versão 0.1** corresponde ao sistema apresentado no primeiro vídeo. Depois 
 ## 3. Testes executados
 
 - Execução local: `python -m pytest -q`, a partir da pasta da aplicação.
-- **Resultado:** 35 testes aprovados, sem falhas (30 de regressão anteriores e cinco testes do ciclo A).
+- **Resultado:** 35 testes aprovados, sem falhas, incluindo cinco testes novos do ciclo A.
 - Testes novos verificam: migração idempotente com preservação de dados; proteção contra abrir esquema futuro; endpoint de filtros combinados; exclusão de esgotados do filtro; impedimento de cancelamento depois do preparo, sem alteração indevida do estoque.
 - Também foi verificada a sintaxe do JavaScript local com `node --check static/app.js`, sem erros.
 - **Limitação de prova:** o navegador Chromium disponível no ambiente de testes bloqueou navegações HTTP locais por política administrativa. Portanto, **não há comprovação nesta etapa de navegação real com JavaScript e fetch no navegador**. O fluxo HTTP e a presença do código de atualização dinâmica foram verificados; o roteiro manual de navegador permanece pendente.
