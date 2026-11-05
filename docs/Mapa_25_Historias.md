@@ -1,41 +1,41 @@
-# Verificação das 25 histórias de usuário — Le Cupcake, versão 0.2
+# Mapa das 25 histórias — versão 0.2 consolidada (pré-homologação)
 
-A versão 0.2 mantém o escopo funcional descrito na versão 0.1 e acrescenta melhorias de usabilidade e acessibilidade, sem alterar a classificação das histórias.
+**Fonte:** documento original da PIT I, com 25 histórias. **Situação:** código local da branch `pit-ii-25-historias-completas`, após as cinco avaliações e a revisão das histórias.
 
-**Fonte de requisitos:** Projeto Integrador Transdisciplinar em Engenharia de Software I, loja virtual de cupcakes. O mapeamento abaixo avalia **o que o código executa**, não substitui uma avaliação final de todos os critérios de aceitação nem representa dispensa autorizada pela universidade.
+**Importante:** nenhuma história foi declarada 100% homologada em todos os requisitos não funcionais. `Núcleo disponível` é fluxo central implementado/testado localmente; `demonstrativo` não é integração real; `parcial` possui requisitos faltantes; `não implementado` implica ausência de integração externa.
 
-**Legenda:** Implementada = fluxo básico funcional; Parcial = só parte dos critérios originais atendidos; Pendente = não construído.
+| História | Descrição | Situação e limites |
+|---|---|---|
+| US-01 | Catálogo, imagens e estoque | Núcleo disponível; desempenho externo não comprovado |
+| US-02 | Filtros dinâmicos | Núcleo disponível; tempo de resposta no Render não medido |
+| US-03 | Carrinho | Núcleo disponível; RNF não medido |
+| US-04 | Frete e total | Demonstrativo, taxa por CEP; sem transportadora |
+| US-05 | Recebimento | Demonstrativo, entrega e retirada; sem logística real |
+| US-06 | Acompanhar pedido | Parcial, polling 15 s; não push |
+| US-07 | Conta de cliente | Parcial, reset depende de SMTP externo |
+| US-08 | Recomendações | Núcleo por histórico; RNF não medido |
+| US-09 | Promoções e cupons | Núcleo disponível; RNF não medido |
+| US-10 | Avaliações | Núcleo disponível; verificação humana pendente |
+| US-11 | Avisos a clientes | Parcial, só notificações internas |
+| US-12 | Meios de pagamento | Apenas simulação interna, sem transações reais |
+| US-13 | Agendamento | Demonstrativo, sem logística real |
+| US-14 | Combos | Núcleo disponível, estoque validado localmente |
+| US-15 | Nutrição/alergênicos | Parcial, dados reais não verificados |
+| US-16 | Cadastrar produtos | Núcleo disponível; RNF pendente |
+| US-17 | Editar e excluir produtos | Núcleo disponível, arquivamento lógico; RNF pendente |
+| US-18 | Relatórios | Núcleo demonstrativo, pedidos não receita recebida |
+| US-19 | Gestão em tempo real | Parcial, polling sem push nem carga comprovada |
+| US-20 | Gerenciar promoções | Núcleo disponível; RNF pendente |
+| US-21 | Avisos a administradores | Parcial, só notificações internas |
+| US-22 | Contas de clientes no admin | Núcleo disponível; RNF pendente |
+| US-23 | Respostas a avaliações | Núcleo disponível; moderação humana pendente |
+| US-24 | Configurar entrega/retirada | Demonstrativo, sem logística real |
+| US-25 | Gateway online | Não implementado externamente |
 
-| ID | História original resumida | Situação consolidada na v0.1 | Observação concreta |
-|---|---|---|---|
-| 1 | Visualizar cardápio com imagens e descrições | Parcial | Catálogo apresenta fotografias reais documentadas, mas critérios de desempenho ainda carecem de avaliação em hospedagem. |
-| 2 | Filtrar cupcakes por sabor e categoria | Implementada | Busca por texto e filtros por categoria. |
-| 3 | Adicionar cupcakes ao carrinho | Implementada | Adição, remoção e atualização com validação de estoque. |
-| 4 | Ver total com frete incluso | Implementada | Frete, descontos e total recalculados no servidor no checkout. |
-| 5 | Selecionar forma de recebimento | Parcial | Retirada ou entrega com taxas configuráveis; não há logística real. |
-| 6 | Acompanhar status do pedido | Parcial | Link privado e pedidos vinculados à conta; sem notificação automática. |
-| 7 | Criar conta para salvar pedidos | Implementada | Registro, autenticação por senha protegida e histórico de pedidos vinculados à conta. Ainda não há recuperação de senha. |
-| 8 | Receber recomendações | Parcial | Recomendações por categoria na página do produto; não há recomendação por histórico. |
-| 9 | Acessar promoções e cupons | Parcial | Cupom informado no checkout; ainda não há página pública listando promoções. |
-| 10 | Deixar avaliações e comentários | Parcial | Avaliação autenticada de 1 a 5 estrelas, comentário e moderação; sem verificação de compra efetuada. |
-| 11 | Receber notificações de andamento | Pendente | Não envia SMS nem e-mail; consulta de status é manual. |
-| 12 | Escolher forma de pagamento | Pendente | A combinar; não há seleção de métodos nem cobrança. |
-| 13 | Agendar entrega | Pendente | Sem calendário e reserva de datas. |
-| 14 | Montar combos personalizados | Pendente | Ainda sem editor de combos. |
-| 15 | Visualizar informações nutricionais | Parcial | Campo editável pelo administrador e exibição condicional; dados reais não foram fornecidos. |
-| 16 | Cadastrar novos sabores | Implementada | Cadastro pelo painel, com fotografia da biblioteca documentada. |
-| 17 | Editar ou remover cupcakes | Parcial | Editar/ocultar/reativar; não há exclusão definitiva. |
-| 18 | Visualizar relatórios de vendas | Parcial | Resumo de pedidos, totais, descontos e produtos mais pedidos; **não mede receita recebida**. |
-| 19 | Gerenciar pedidos em tempo real | Parcial | Listagem e avanço manual de status, não atualização automática/push. |
-| 20 | Configurar promoções e cupons | Implementada | Criar, ativar/desativar, percentual/valor fixo, subtotal mínimo e limite de usos. |
-| 21 | Receber notificações de novos pedidos | Pendente | Apenas consulta ao painel administrativo. |
-| 22 | Gerenciar contas de clientes | Parcial | Listagem e bloqueio/reativação; ainda sem edição e recuperação de senha. |
-| 23 | Responder avaliações de clientes | Implementada | Resposta via painel, após moderação; texto escapado na visualização. |
-| 24 | Configurar opções de entrega e retirada | Parcial | Edita descrição, custo e disponibilidade das opções cadastradas; não define regiões nem horários. |
-| 25 | Integrar sistemas de pagamento online | Pendente | Não há gateway, pagamento ou transação financeira real. |
+**Contexto:** o primeiro vídeo representa a 0.1; as cinco avaliações foram mantidas. A revisão das 25 histórias identificou requisitos adicionais posteriormente implementados na 0.2; não atribuir essas lacunas retroativamente aos avaliadores.
 
-## Testes e limitações
+**Evidência local:** 93 testes aprovados; SQLite com 27 tabelas, 173 colunas, 34 FKs e migração v7. Persistência pública, testes manuais em dispositivos e metas de carga/latência continuam pendentes.
 
-Os testes em `tests/` cobrem catálogo, carrinho, estoque, pedidos, registro, login, cupom, avaliações, moderação, administração, relatórios, segurança básica de formulários e limites de acesso. Executar `python -m pytest -q` para obter a quantidade atual de testes aprovados; **não confundir** testes automáticos com os cinco testes por pessoas reais exigidos pela universidade.
+**Restrições:** não existe pagamento real nem gateway (US-12/25), e-mail/SMS de pedido (US-11/21), logística contratada (US-04/05/13/24); a recuperação de senha depende de SMTP configurado (US-07). Consulta de pedidos é por polling 15 s (US-06/19), não push.
 
-Antes da publicação pública, ainda são necessários revisão de segurança e privacidade, persistência confiável, recuperação de senha, tratamento de dados pessoais e licenciamento adequado das fotografias. Estas fotos mantêm suas referências no arquivo Word separado `docs/Referencias_Fotograficas_Simplificadas.docx`.
+O documento histórico `Documentacao_ABNT.docx`, o formulário preenchido anteriormente e o laudo antigo são **anteriores ao Ciclo F** e não devem ser considerados versões finais da ampliação 0.2. A versão atual está na documentação do [Ciclo F](Ciclo_F_Auditoria_Consolidada_v02.md).
