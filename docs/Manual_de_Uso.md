@@ -33,4 +33,4 @@ Instale Python 3.11+, execute `python -m pip install -r requirements.txt` e `pyt
 - Testes: `python -m pip install -r requirements-dev.txt && python -m pytest -q`. Resultado local de referência: **93 aprovados**. Faltam medições de carga, inspeção visual em navegador real e confirmação da publicação final.
 - Fotografias externas e licenças devem ser conferidas antes do uso público.
 
-O primeiro vídeo e as cinco avaliações pertencem ao histórico da versão anterior. A nova apresentação será gravada apenas após a validação e publicação da edição 0.2 consolidada.
+O primeiro vídeo e as cinco avaliações pertencem ao histórico da versão anterior. A nova apresentação será gravada apenas após a validação e publicação da versão 0.2.
