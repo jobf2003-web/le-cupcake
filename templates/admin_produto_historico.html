@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Histórico do cupcake{% endblock %}
+{% block content %}
+<div class="container inner-page admin-page">
+  <a class="breadcrumb" href="/admin">← Voltar ao painel</a>
+  <div class="page-header"><span class="eyebrow">AUDITORIA DE PRODUTOS</span><h1>Histórico: {{ product.nome }}</h1>
+  <p>Registro de alterações administrativas. As informações dos pedidos concluídos são preservadas.</p></div>
+  <div class="responsive-table"><table>
+  <thead><tr><th>Data</th><th>Usuário</th><th>Ação</th><th>Alterações</th></tr></thead>
+  <tbody>{% for item in history %}
+    <tr><td>{{ item.criado_em }}</td><td>{{ item.usuario_nome }}</td><td>{{ item.acao }}</td><td>{{ item.descricao }}</td></tr>
+    {% else %}<tr><td colspan="4">Nenhum registro de alteração disponível.</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% endblock %}
