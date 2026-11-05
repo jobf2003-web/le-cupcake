@@ -144,3 +144,6 @@ tr:last-child td {border:0}
   html {scroll-behavior:auto}
   .product-card,.product-photo,.btn {transition:none!important; transform:none!important}
 }
+
+/* Respeitar controles HTML ocultos nas atualizações dinâmicas. */
+[hidden] { display: none !important; }
