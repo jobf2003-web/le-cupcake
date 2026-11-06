@@ -1,16 +1,16 @@
 # Modelagem da versão 0.2 — Le Cupcake
 
-Modelos da **versão 0.2 publicada**, extraídos do código e do esquema SQLite migrado. Eles **não representam a versão 0.1 inicial** e não devem ser associados retroativamente ao primeiro vídeo.
+Estes modelos descrevem as estruturas e os fluxos da versão 0.2 publicada. O primeiro vídeo registra a implementação inicial 0.1.
 
-1. [Casos de uso e fronteira demonstrativa](01_Casos_de_uso.md)
-2. [Classes de domínio](02_Classes_de_dominio.md)
-3. [Sequência do checkout e simulador](03_Sequencia_checkout.md)
-4. [Sequência da atualização de status e avisos internos](04_Sequencia_status.md)
-5. [Atividades do pedido](05_Atividades_pedido.md)
-6. [Modelo conceitual](06_Modelo_conceitual.md)
-7. [Modelo físico/lógico, 27 tabelas](07_Modelo_logico_fisico.md)
-8. [IHC/protótipos esquemáticos](08_Prototipos_IHC.md)
+1. [Casos de uso e fronteira demonstrativa](01%20-%20Casos%20de%20uso.md)
+2. [Classes de domínio](02%20-%20Classes%20de%20dominio.md)
+3. [Sequência do checkout e simulador](03%20-%20Sequencia%20do%20checkout.md)
+4. [Sequência da atualização de status e avisos internos](04%20-%20Sequencia%20de%20status.md)
+5. [Atividades do pedido](05%20-%20Atividades%20do%20pedido.md)
+6. [Modelo conceitual](06%20-%20Modelo%20conceitual.md)
+7. [Modelo físico/lógico, 27 tabelas](07%20-%20Modelo%20logico%20e%20fisico.md)
+8. [IHC/protótipos esquemáticos](08%20-%20Prototipos%20de%20interface.md)
 
-Os diagramas são mantidos como **texto-fonte Mermaid editável** e renderizados pelo GitHub. Há PNG e fontes DOT adicionais no pacote acadêmico do Ciclo F. Os 173 campos, 34 FKs, índices e tipos reais devem ser lidos no dicionário extraído do banco, disponível junto da documentação consolidada. `schema.sql` define 23 tabelas-base; `migrations.py` leva à versão física 7, total de 27.
+Os diagramas são mantidos como **texto-fonte Mermaid editável** e renderizados pelo GitHub. Há PNG e fontes DOT adicionais no pacote acadêmico do Ciclo F. O dicionário de dados complementa os diagramas com os tipos, atributos e relações do banco SQLite migrado. `schema.sql` define 23 tabelas-base; `migrations.py` leva à versão física 7, total de 27.
 
-**Limites explícitos:** pagamentos são simulações locais; mensagens de pedidos são internas (`canal=app`); a atualização do status usa polling de 15 segundos; logística é fictícia; recuperação por e-mail depende de SMTP. O código não possui gateway real integrado.
+**Escopo do protótipo:** pagamentos demonstrativos, mensagens internas (`canal=app`), atualização de status por consultas periódicas, logística simulada e recuperação por e-mail condicionada à configuração de SMTP.
