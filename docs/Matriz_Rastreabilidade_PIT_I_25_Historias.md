@@ -1,14 +1,10 @@
-# Matriz de rastreabilidade — PIT I → PIT II | Le Cupcake
+# Rastreabilidade dos requisitos — PIT I e PIT II
 
-**Matriz histórica da etapa de diagnóstico, não o quadro de execução final da versão 0.2.** Para a cobertura da versão publicada, consultar `Mapa_25_Historias.md`.
+Este documento reúne as 25 histórias previstas na PIT I e o diagnóstico realizado sobre a versão inicial 0.1. A tabela e as notas de cada história registram a situação examinada antes do desenvolvimento dos ciclos da versão 0.2.
 
-**Fonte primária:** arquivo original “Projeto - José Otávio Braga Fante (1).docx”, seção Resultado e discussão, imagens das histórias de usuário, mapa de afinidade, backlog e tarefas. Esta matriz é uma transcrição operacional RESUMIDA dos critérios, não substitui a leitura das imagens originais.
+A versão 0.2 foi implementada posteriormente, com resultados sintetizados no mapa das funcionalidades e nos relatórios dos ciclos. As limitações demonstrativas e os requisitos não funcionais sem medição formal estão descritos nesses documentos.
 
-**Controle da entrega:** branch de desenvolvimento. A branch main e o site público NÃO são alterados por este documento. Não afirmar que uma história está concluída sem verificar todos os critérios de aceitação, regras de negócio e RNFs. Não confundir e-mails/SMS simulados, pagamento fictício ou teste sintético de carga com integração real comprovada.
-
-**Backlog:** 25 histórias; soma da tabela original = **320 horas**; texto corrido original menciona **332 horas**. Divergência mantida para esclarecimento; não estimar horas de implementação a partir desses números sem replanejamento.
-
-**Legenda da situação:** a coluna de situação preliminar registra o diagnóstico da implementação inicial 0.1, antes dos Ciclos A–F da versão 0.2. Não é o estado final da versão 0.2 nem atestado de conformidade. Para o estado atual, consultar `Mapa_25_Historias.md` e o relatório do Ciclo F.
+A carga de trabalho indicada na tabela original da PIT I soma **320 horas**, enquanto seu texto descritivo menciona **332 horas**. Os valores são preservados como referência ao planejamento original.
 
 | US | História | Prioridade original | Horas originais | Situação preliminar | Principal lacuna |
 |---:|---|---:|---:|---|---|
@@ -44,160 +40,154 @@
 
 CA: exibir sabores inclusive indisponíveis; foto com qualidade; produto sem estoque sinalizado. RN: atualizar após cadastro; bloquear compra sem estoque; categorias. RNF: imagem em até 3 s.
 
-**Diagnóstico histórico da versão 0.1:** Parcial. **Lacuna identificada na versão 0.1:** Conferir exibição de indisponíveis e desempenho real.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Conferir exibição de indisponíveis e desempenho real.
 
 ### US-02 — Filtros combinados
 
 CA: filtros em tempo real; múltiplos filtros combinados; atualizar sem recarregar. RN: apenas produtos disponíveis; categorias administrativas. RNF: resposta em até 1 s.
 
-**Situação anterior:** Básica. **Lacuna identificada na versão 0.1:** Filtros no servidor não comprovam atualização dinâmica e desempenho.
+**Diagnóstico da versão 0.1:** Básica. **Observação inicial:** Filtros no servidor não comprovam atualização dinâmica e desempenho.
 
 ### US-03 — Carrinho persistente
 
 CA: quantidade e subtotal atualizados em tempo real; remover itens. RN: respeitar estoque e indisponibilidade. RNF: persistência durante a utilização.
 
-**Situação anterior:** Básica. **Lacuna identificada na versão 0.1:** Conferir atualização sem recarga e persistência entre navegações.
+**Diagnóstico da versão 0.1:** Básica. **Observação inicial:** Conferir atualização sem recarga e persistência entre navegações.
 
 ### US-04 — Total com frete e descontos
 
 CA: cálculo imediato e detalhamento. RN: frete por CEP; cupom correto. RNF: cálculo até 1 s; compatível com mobile.
 
-**Situação anterior:** Parcial. **Lacuna identificada na versão 0.1:** Hoje há taxa de entrega configurada, não frete efetivo por CEP.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Hoje há taxa de entrega configurada, não frete efetivo por CEP.
 
 ### US-05 — Forma de recebimento
 
 CA: opções entrega/retirada e custo adicional; alterar antes da finalização. RN: retirada gratuita; entrega por região. RNF: interface intuitiva e mobile.
 
-**Situação anterior:** Parcial. **Lacuna identificada na versão 0.1:** Implementar regras regionais e conferir alterações no checkout.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Implementar regras regionais e conferir alterações no checkout.
 
 ### US-06 — Acompanhar status
 
 CA: status em tempo real, notificação a cada mudança, visibilidade na conta e histórico. RN: só admin muda status; fluxo lógico. RNF: atualização até 2 s; até 1.000 pedidos simultâneos.
 
-**Situação anterior:** Parcial. **Lacuna identificada na versão 0.1:** Faltam notificações e atualização automática; capacidade não comprovada.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Faltam notificações e atualização automática; capacidade não comprovada.
 
 ### US-07 — Conta e recuperação
 
 CA: nome, e-mail e senha; histórico após login; recuperação de senha. RN: proteção dos dados; só cadastrados avaliam. RNF: login até 5 s.
 
-**Situação anterior:** Parcial perante a PIT I. **Lacuna identificada na versão 0.1:** Falta recuperação de senha; conferir privacidade e tempo de login.
+**Diagnóstico da versão 0.1:** Parcial perante a PIT I. **Observação inicial:** Falta recuperação de senha; conferir privacidade e tempo de login.
 
 ### US-08 — Recomendações históricas
 
 CA: recomendações pelo histórico, ao menos 3 opções na página inicial, atualizadas a cada pedido. RN: histórico de compras; não recomendar sem estoque. RNF: até 3 s.
 
-**Situação anterior:** Parcial. **Lacuna identificada na versão 0.1:** Sugestões por categoria não cumprem personalização histórica.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Sugestões por categoria não cumprem personalização histórica.
 
 ### US-09 — Promoções e cupons
 
 CA: aplicar cupom no checkout; mostrar desconto; validade; erro para inválidos. RN: regras por cupom e máximo 1 por pedido. RNF: aplicação até 2 s.
 
-**Situação anterior:** Parcial. **Lacuna identificada na versão 0.1:** Checkout possui cupons; conferir promoções públicas e desempenho.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Checkout possui cupons; conferir promoções públicas e desempenho.
 
 ### US-10 — Avaliações e comentários
 
 CA: nota; comentário opcional; avaliação visível no produto; só logados. RN: não editar após envio; moderação admin. RNF: registro até 3 s.
 
-**Situação anterior:** Parcial. **Lacuna identificada na versão 0.1:** Auditar todos os critérios, inclusive bloqueio de edição.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Auditar todos os critérios, inclusive bloqueio de edição.
 
 ### US-11 — Notificações de andamento
 
 CA: e-mail/SMS em cada status; número do pedido; cliente escolhe canal. RN: só cadastrados; RNF: entrega em até 1 min; suporte a envio em massa.
 
-**Situação anterior:** Ausente. **Lacuna identificada na versão 0.1:** Exige serviço externo real ou integração verificável; não contar simulação como envio.
+**Diagnóstico da versão 0.1:** Ausente. **Observação inicial:** Exige serviço externo real ou integração verificável; não contar simulação como envio.
 
 ### US-12 — Forma de pagamento
 
 CA: opções no checkout; transação segura; confirmação; mensagem em falha. RN: integração gateway; só confirmar após aprovação. RNF: transação em até 5 s.
 
-**Situação anterior:** Ausente. **Lacuna identificada na versão 0.1:** Requer gateway/ambiente de homologação, webhooks, idempotência e validação.
+**Diagnóstico da versão 0.1:** Ausente. **Observação inicial:** Requer gateway/ambiente de homologação, webhooks, idempotência e validação.
 
 ### US-13 — Agendamento de entrega
 
 CA: calendário; disponibilidade; entrada em produção na data prevista. RN: até 15 dias; sem dias de fechamento. RNF: interface intuitiva, resposta até 2 s.
 
-**Situação anterior:** Ausente. **Lacuna identificada na versão 0.1:** Criar calendário, janelas, capacidade e regras de produção.
+**Diagnóstico da versão 0.1:** Ausente. **Observação inicial:** Criar calendário, janelas, capacidade e regras de produção.
 
 ### US-14 — Combos personalizados
 
 CA: selecionar quantidade e sabores; preço automático; resumo pré-compra. RN: estoque; regras de descontos. RNF: interface responsiva.
 
-**Situação anterior:** Ausente. **Lacuna identificada na versão 0.1:** Criar configuração, cálculo e movimentação de estoque por componente.
+**Diagnóstico da versão 0.1:** Ausente. **Observação inicial:** Criar configuração, cálculo e movimentação de estoque por componente.
 
 ### US-15 — Informações nutricionais
 
 CA: calorias e ingredientes; página do produto; dados legíveis; alerta de alergênicos. RN: conteúdo informado pelo admin; atualizar junto ao produto. RNF: até 2 s.
 
-**Situação anterior:** Parcial. **Lacuna identificada na versão 0.1:** Sem dados verificados ou alertas de alergênicos completos.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Sem dados verificados ou alertas de alergênicos completos.
 
 ### US-16 — Cadastrar sabores
 
 CA: nome, descrição e foto; preço e estoque; catálogo imediato; obrigatórios validados. RN: ID único; estoque não negativo. RNF: até 3 s.
 
-**Situação anterior:** Básica. **Lacuna identificada na versão 0.1:** Conferir validações de todos os campos e foto.
+**Diagnóstico da versão 0.1:** Básica. **Observação inicial:** Conferir validações de todos os campos e foto.
 
 ### US-17 — Editar/remover cupcakes
 
 CA: editar nome, descrição, foto e preço; refletir de imediato; impedir exclusão com pedidos ativos. RN: trilha de alterações; só admin. RNF: até 2 s.
 
-**Situação anterior:** Parcial. **Lacuna identificada na versão 0.1:** Ocultar não substitui exclusão condicionada; falta histórico de edição.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Ocultar não substitui exclusão condicionada; falta histórico de edição.
 
 ### US-18 — Relatórios de vendas
 
 CA: vendas por período; ranking sabores; filtro categoria. RN: atualizar diariamente; só admin. RNF: gerar em até 5 s; gráficos interativos.
 
-**Situação anterior:** Parcial. **Lacuna identificada na versão 0.1:** Relatórios atuais não demonstram filtros e gráficos completos.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Relatórios atuais não demonstram filtros e gráficos completos.
 
 ### US-19 — Pedidos em tempo real
 
 CA: pedidos ativos; alterar status; estimativa de entrega; cancelar. RN: fluxo lógico; cancelar somente antes da produção. RNF: tempo real; 500 pedidos simultâneos.
 
-**Situação anterior:** Parcial. **Lacuna identificada na versão 0.1:** Faltam tempo estimado, atualização instantânea e prova de concorrência.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Faltam tempo estimado, atualização instantânea e prova de concorrência.
 
 ### US-20 — Promoções administrativas
 
 CA: criar cupons com validade; mostrar promoções; desativar expiradas; validar existentes. RN: código único; não retroativo. RNF: aplicar até 2 s; administração amigável.
 
-**Situação anterior:** Parcial perante a PIT I. **Lacuna identificada na versão 0.1:** Cupom existe; faltam campanha pública e automatismos de expiração.
+**Diagnóstico da versão 0.1:** Parcial perante a PIT I. **Observação inicial:** Cupom existe; faltam campanha pública e automatismos de expiração.
 
 ### US-21 — Aviso de novos pedidos ao admin
 
 CA: notificação com número do pedido imediatamente; canal configurável. RN: somente administradores; registro em log. RNF: até 1 min; envio em massa.
 
-**Situação anterior:** Ausente. **Lacuna identificada na versão 0.1:** Implementar notificação efetiva, preferências e log.
+**Diagnóstico da versão 0.1:** Ausente. **Observação inicial:** Implementar notificação efetiva, preferências e log.
 
 ### US-22 — Gerenciar clientes
 
 CA: alterar dados; bloquear contas; refletir imediatamente; histórico de alterações. RN: somente admin. RNF: até 2 s.
 
-**Situação anterior:** Parcial. **Lacuna identificada na versão 0.1:** Bloqueio existe; faltam edição e auditoria.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Bloqueio existe; faltam edição e auditoria.
 
 ### US-23 — Respostas a avaliações
 
 CA: resposta junto à avaliação; só admin; data/autor. RN: impedir linguagem ofensiva; sem autorresposta. RNF: até 2 s; interface intuitiva.
 
-**Situação anterior:** Parcial perante a PIT I. **Lacuna identificada na versão 0.1:** Verificar autoria, data e moderação específica de respostas.
+**Diagnóstico da versão 0.1:** Parcial perante a PIT I. **Observação inicial:** Verificar autoria, data e moderação específica de respostas.
 
 ### US-24 — Configurar entrega e retirada
 
 CA: horários retirada; taxa entrega; refletir no checkout; validar região. RN: frete correto por região; retirada grátis. RNF: até 2 s; interface responsiva.
 
-**Situação anterior:** Parcial. **Lacuna identificada na versão 0.1:** Faltam horários e regiões operacionais reais.
+**Diagnóstico da versão 0.1:** Parcial. **Observação inicial:** Faltam horários e regiões operacionais reais.
 
 ### US-25 — Integrar pagamentos
 
 CA: múltiplos gateways; transações seguras/confirmadas; validar cliente. RN: confirmar pedido só após aprovação. RNF: até 8 s; 500 transações simultâneas.
 
-**Situação anterior:** Ausente. **Lacuna identificada na versão 0.1:** Exige pelo menos interfaces de provedores reais e homologação sem capturar dados de cartão.
+**Diagnóstico da versão 0.1:** Ausente. **Observação inicial:** Exige pelo menos interfaces de provedores reais e homologação sem capturar dados de cartão.
 
-## Condições para encerrar as histórias
+## Correspondência com a versão 0.2
 
-1. Implementação real e consistente com as regras do sistema e com as demais histórias.
-2. Evidência de teste de sucesso e falha para cada critério de aceitação.
-3. Evidência de controle de acesso, persistência, consistência de estoque/pedidos e proteção de dados para operações relevantes.
-4. Critérios de desempenho verificados em ambiente definido, não apenas assumidos. Se não for possível comprovar throughput/latência, registrar explicitamente como **não comprovado**.
-5. Modelagem UML (casos de uso, classes, sequência, atividades) + modelos conceitual/lógico/físico e dicionário de dados revisados a partir do código final.
-6. Não iniciar nova gravação do segundo vídeo nem atualizar o formulário/laudo para “100% concluído” antes da homologação final.
-7. Integrações reais com pagamentos e envio externo dependem de ambiente e credenciais apropriadas; armazenar segredos fora do GitHub. Em modo de demonstração, declarar claramente qualquer operação simulada.
+O diagnóstico da versão 0.1 permitiu organizar os ciclos de desenvolvimento. A implementação final reúne catálogo com filtros, regras de estoque e cancelamento, agendamento e combos demonstrativos, gestão de clientes, promoções, acompanhamento de pedidos, avisos internos e pagamentos simulados.
 
-**Primeiro vídeo:** permanece como evidência da versão inicial 0.1, conforme definido pelo responsável pelo projeto. **Segundo vídeo:** registra as mudanças da versão 0.2 publicada, mantendo a sequência 0.1 → 0.2.
+A avaliação dos resultados considera o funcionamento efetivamente testado. Integrações externas de pagamento, logística e SMS/e-mail não são apresentadas como recursos operacionais. A versão 0.2 foi publicada na `main` e no Render após os ciclos de implementação e documentação.
