@@ -1,6 +1,6 @@
 # Le Cupcake — Projeto Integrador Transdisciplinar em Engenharia de Software II
 
-**Versão 0.2 em desenvolvimento, ainda não publicada no Render.** O repositório `main` e o primeiro vídeo mostram a implementação anterior. A branch `pit-ii-25-historias-completas` contém a evolução posterior às cinco avaliações e à revisão integral das 25 histórias da PIT I.
+**Versão acadêmica atual: 0.2, integrada à branch `main` em 5 de novembro de 2026.** A versão inicial 0.1 e o primeiro vídeo são registros históricos. A versão 0.2 foi desenvolvida após as cinco avaliações e a revisão das 25 histórias da PIT I. A confirmação do deploy da versão atual no Render é uma verificação operacional separada.
 
 O projeto é uma **loja virtual fictícia**, sem processamento de pagamentos reais, entregas físicas, serviço de SMS/e-mail para andamento de pedidos ou garantias de persistência em hospedagem gratuita. Não use dados pessoais verdadeiros no protótipo.
 
@@ -9,9 +9,9 @@ O projeto é uma **loja virtual fictícia**, sem processamento de pagamentos rea
 1. **0.1 — primeiro vídeo:** implementação inicial da loja, antes da ampliação.
 2. **Cinco avaliações e revisão do backlog da PIT I:** foram preservadas as avaliações históricas; as lacunas descobertas na revisão dos requisitos não são apresentadas como sugestões que os avaliadores teriam feito.
 3. **0.2 — Ciclos A–E:** atualização incremental do site com filtros dinâmicos, migrações, gestão de produtos, CEP e agenda demonstrativos, combos, relacionamento, mensagens internas e pagamentos simulados.
-4. **Ciclo F:** consolidação da documentação, dicionário de dados, diagramas e auditoria; **homologação pública e vídeo final ainda pendentes**.
+4. **Ciclo F e integração:** consolidação da documentação, dicionário de dados, diagramas e auditoria; os ciclos A–F foram integrados à `main`. A validação do Render e o segundo vídeo são etapas operacionais separadas.
 
-## Funções disponíveis no código da branch 0.2
+## Funções disponíveis no código da versão 0.2
 
 - **Vitrine:** catálogo com disponibilidade, busca e filtros dinâmicos, produtos e promoções.
 - **Compra:** carrinho, combos com controle de estoque, cupom, cálculo local de taxa por faixas de CEP, entrega/retirada e agendamento demonstrativo em até 15 dias.
@@ -43,7 +43,7 @@ python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-A cópia local do Ciclo E passou em **93 testes automatizados**; a checagem de estrutura do Ciclo F encontrou `PRAGMA user_version=7`, 27 tabelas, 173 campos e 34 FKs sem violações na base de teste. Os testes **não** substituem inspeção visual em navegadores reais, ensaios de desempenho/carga, homologação do site publicado, entrega efetiva de SMS/e-mail ou gateway de pagamento.
+O código da versão 0.2 passou em **93 testes automatizados locais**; a checagem de estrutura do Ciclo F encontrou `PRAGMA user_version=7`, 27 tabelas, 173 campos e 34 FKs sem violações na base de teste. Os testes **não** substituem inspeção visual em navegadores reais, ensaios de desempenho/carga, homologação do site publicado, entrega efetiva de SMS/e-mail ou gateway de pagamento.
 
 ## Documentação e entrega
 
@@ -58,9 +58,9 @@ A cópia local do Ciclo E passou em **93 testes automatizados**; a checagem de e
 - [Formulário oficial da PIT II](docs/PIT_atividade_Le_Cupcake_Preenchida.docx): mantém a estrutura do modelo da faculdade e os cinco registros de avaliação. Antes da entrega, conferir sua sincronização com a cópia mais recente e preencher o link verdadeiro do segundo vídeo.
 - [Fontes das fotografias](docs/Referencias_Fotograficas_Simplificadas.docx). A publicação deve observar atribuições CC BY/CC BY-SA.
 
-**Link atual do site público (versão anterior):** https://le-cupcake.onrender.com/. **Não confundir com a branch de desenvolvimento.**
+**Endereço do serviço no Render:** https://le-cupcake.onrender.com/. A integração do código à `main` está confirmada, mas a atualização do serviço nesse endereço deve ser verificada no painel do Render; não presumir o deploy somente pelo merge.
 
-**Primeiro vídeo:** mantido como demonstração inicial, sem regravação. **Segundo vídeo:** deverá representar a versão 0.2 após publicação e testes, com limites do plano gratuito explicitados. Não afirmar que os registros de avaliações foram alterados.
+**Primeiro vídeo:** mantido como demonstração inicial, sem regravação. **Segundo vídeo:** deverá representar a versão 0.2 publicada após a verificação no Render, com limites do plano gratuito explicitados. Não afirmar que os registros de avaliações foram alterados.
 
 ## Segurança e alcance
 
