@@ -4,7 +4,7 @@
 
 A Le Cupcake é um projeto acadêmico demonstrativo, sem comercialização real. Recursos externos podem depender de conta, cobrança, credenciais, aprovação comercial ou infraestrutura persistente. **Uma tela que simula uma operação não é a execução real dessa operação.** Sempre distinguir “implementado e testado”, “demonstrativo” e “não disponível/não validado”.
 
-Este registro integra a documentação da evolução **0.1 → avaliações + revisão das 25 histórias → 0.2**. As limitações precisam constar também da documentação acadêmica, da matriz, do laudo, do formulário oficial (quando finalizado) e do segundo vídeo, conforme relevância.
+Este registro integra a documentação da evolução **0.1 → avaliações + revisão das 25 histórias → 0.2**. As limitações de recursos gratuitos são declaradas no relatório técnico, no laudo e na apresentação final da versão publicada.
 
 ## Matriz de dependência externa
 
@@ -28,9 +28,6 @@ Este registro integra a documentação da evolução **0.1 → avaliações + re
 
 **Não ocultar limitações e não reduzir o escopo documental às partes já construídas.** O objetivo é demonstrar a evolução da 0.1 para a 0.2 com a máxima implementação tecnicamente viável, documentando com exatidão o que não pode ser realizado sob restrições da hospedagem gratuita.
 
-## Condições antes da publicação da 0.2
+## Registro de publicação e escopo
 
-1. Confirmar quais recursos gratuitos e credenciais de teste são efetivamente disponíveis.
-2. Testar cada integração no nível correspondente (local, sandbox, produção), com evidência e sem segredos no GitHub.
-3. Revisar documentação e modelagem antes do segundo vídeo. O primeiro vídeo permanece como registro histórico da versão 0.1.
-4. Preservar os textos e datas das cinco avaliações aprovadas pelo tutor. Não atribuir retroativamente às avaliações funcionalidades que não existiam naquele momento.
+A versão 0.2 foi integrada à `main` e publicada no Render. O trabalho preservou as cinco avaliações e o primeiro vídeo, e o segundo vídeo apresenta a atualização. A aplicação mantém pagamentos internos demonstrativos, notificações somente no aplicativo e frete/agendamento sem operadores logísticos externos. São escolhas e limites documentados do protótipo acadêmico.
