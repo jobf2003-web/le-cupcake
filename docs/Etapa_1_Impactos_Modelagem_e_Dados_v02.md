@@ -1,12 +1,12 @@
 # Etapa 1 — Mapa de impacto na modelagem e no banco de dados (v0.1 → v0.2)
 
-**Situação:** proposta técnica para desenvolvimento, **não implantação**. Nenhuma estrutura abaixo foi migrada no ambiente público. A modelagem final será a fotografia do código realmente implementado, não um diagrama aspiracional.
+**Situação:** registro de planejamento de dados da Etapa 1. A versão 0.2 final foi implementada e publicada; a modelagem física efetiva consta do dicionário de 27 tabelas e dos diagramas do Ciclo F.
 
 ## 1. Estado inicial validado
 
 O arquivo `schema.sql` contém **23 tabelas**. Parte dos relacionamentos físicos foi criada antecipadamente, mas o `app.py` só implementa alguns fluxos. Uma tabela existente não prova o funcionamento da história correspondente.
 
-**Problema de migração:** `init_database()` executa o script de criação apenas quando `usuarios` não existe; alterações futuras no `schema.sql` por si só não migram bancos já instalados. É necessária estratégia versionada e backup.
+**Evolução das migrações:** o esquema-base foi mantido e a versão 0.2 passou a aplicar sete migrações SQLite sequenciais e idempotentes, com preservação da estrutura de bancos anteriores.
 
 ## 2. Modelagem de dados — mudanças a desenhar e validar antes da migração
 
