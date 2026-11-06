@@ -1,6 +1,6 @@
 # Etapa 1 — Plano de testes de aceitação das 25 histórias (antes da implementação)
 
-**Fonte:** PIT I original: critérios de aceitação (CA), regras de negócio (RN) e requisitos não funcionais (RNF). **Estado deste plano:** TODOS os testes abaixo são **a executar**. Os testes de regressão usados como referência inicial não são prova suficiente da conformidade completa das histórias. O resultado global posterior da versão 0.2 deve ser consultado no Ciclo F.
+**Fonte:** PIT I original: critérios de aceitação (CA), regras de negócio (RN) e requisitos não funcionais (RNF). **Estado deste plano:** registro dos casos de aceitação definidos no diagnóstico inicial. A versão 0.2 passou por 93 testes automatizados locais aprovados, documentados no Ciclo F, com limites declarados para critérios externos e não funcionais. Este plano não constitui uma lista de tarefas ainda abertas para entrega.
 
 ## Roteiros e provas esperadas
 
@@ -45,4 +45,4 @@
 
 Cada caso de teste implementado nas próximas etapas deverá usar marcador `USxx-CAnn` (critério), `USxx-RNnn` (regra) ou `USxx-RNFnn` (não funcional), de acordo com a numeração do documento original. Exemplo: `US19-RN02` verifica que não é possível cancelar após a entrada em produção.
 
-**Condição de conclusão de uma história:** implementar todos os critérios viáveis, demonstrar testes de sucesso/erro, registrar desempenho e identificar cada exceção não verificada por falta de recursos. A numeração “0.2” não garante, por si, conformidade.
+**Critério de leitura da execução:** os testes automatizados verificam as funções cobertas; critérios de provedores externos e metas de carga não são apresentados como comprovados quando não foram medidos. A versão 0.2 é uma implementação acadêmica demonstrativa com escopo declarado.
