@@ -33,4 +33,4 @@ Instale Python 3.11+, execute `python -m pip install -r requirements.txt` e `pyt
 - Testes: `python -m pip install -r requirements-dev.txt && python -m pytest -q`. Resultado local de referência: **93 aprovados**. O deploy da 0.2 foi confirmado como ativo no Render. A suíte automatizada não abrange certificação de carga, medições formais de latência nem testes em todos os dispositivos.
 - As fotografias externas e suas referências estão documentadas no arquivo de fontes; sua exibição está sujeita à disponibilidade das origens e às licenças correspondentes.
 
-O primeiro vídeo e as cinco avaliações pertencem ao histórico da versão anterior. O segundo vídeo apresenta as atualizações da versão 0.2 publicada: https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing.
+O primeiro vídeo e as cinco avaliações registram a implementação inicial 0.1. O segundo vídeo apresenta as atualizações da versão 0.2 publicada: https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing.
