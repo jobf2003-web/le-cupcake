@@ -1,10 +1,10 @@
-# Checklist de homologação PIT II — versão 0.2 consolidada (pré-publicação)
+# Checklist de entrega PIT II — versão 0.2
 
-Este checklist acompanha a evolução da versão 0.1 para a versão 0.2, após as cinco avaliações e a revisão das 25 histórias da PIT I. Não é autorização para publicar a branch.
+Este checklist acompanha a evolução da versão 0.1 para a versão 0.2, após as cinco avaliações e a revisão das 25 histórias da PIT I. A integração do código à `main` foi concluída; a confirmação da atualização do serviço no Render é etapa independente.
 
 ## Evidências técnicas já verificadas localmente
 - [x] Trabalho original PIT I recuperado e 25 histórias registradas com critérios e limitações.
-- [x] Código evoluiu em branch isolada, sem alteração da `main`.
+- [x] Código desenvolvido em branch isolada e integrado à `main`, com preservação do histórico da 0.1.
 - [x] Modelo do banco: 23 tabelas iniciais + migrações 1–7 = **27 tabelas, 173 campos, 34 FKs**.
 - [x] **93 testes automatizados** aprovados na cópia local do Ciclo E.
 - [x] Fluxos internos de frete, agendamento, combos, recuperação por token, avisos internos e pagamentos simulados testados localmente.
@@ -28,7 +28,8 @@ Este checklist acompanha a evolução da versão 0.1 para a versão 0.2, após a
 - [ ] Conferir créditos/licenças das fotografias na página publicada.
 - [ ] Aprovar ou registrar com tutor as limitações incontornáveis do plano gratuito.
 - [ ] Garantir que o formulário oficial da branch tenha a mesma revisão encaminhada para a documentação da versão 0.2; substituir o relatório de atualização do sistema que ainda descreve 30 testes. Preservar as avaliações e o primeiro vídeo; inserir o link real do segundo vídeo e as evidências da publicação.
-- [ ] Publicar a versão 0.2 consolidada na `main` e no Render **somente após aprovação de teste**.
+- [x] Integrar a versão 0.2 consolidada à `main` após os testes locais.
+- [ ] Verificar se o Render implantou o commit atual da `main`, testando as rotas públicas sem expor dados pessoais.
 - [ ] Gravar o segundo vídeo (até cinco minutos) demonstrando mudanças efetivas, mantendo o primeiro vídeo intacto.
 - [ ] Verificar os dois links de vídeo e a entrega exigida no AVA.
 
