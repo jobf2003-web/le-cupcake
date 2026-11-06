@@ -43,17 +43,13 @@ Foram também mantidos os testes de regressão da primeira parte do ciclo: filtr
 - **`auditoria`**: reaproveitada tabela existente para registro em JSON de snapshots de produto (campos antes/depois), vínculo com administrador e timestamp. Registros antigos de texto continuam legíveis.
 - **`estoque_movimentos`**: reaproveitada tabela existente para variações de estoque efetuadas administrativamente.
 - **`pedidos` + `pedido_itens`**: usadas para bloquear exclusões quando houver pedido ativo; não foram migradas nesta etapa.
-- **`combo_itens` + `combos`**: impedimento antecipado de arquivar ingrediente em combo ativo; o editor de combos ainda NÃO está implementado.
+- **`combo_itens` + `combos`**: impedimento antecipado de arquivar ingrediente em combo ativo; o editor de combos foi implementado posteriormente no Ciclo B.
 - **23 tabelas preservadas**. A nova estrutura modifica uma tabela e cria um índice, sem mudar o número de tabelas.
 
-No modelo final 0.2, refletir a nova coluna, as relações de auditoria e estoque, e o fluxo de exclusão condicionada. Em todos os diagramas, diferenciar o que existia na 0.1 daquilo que foi acrescentado após avaliações e revisão da PIT I.
+O modelo final 0.2 incorpora a nova coluna, as relações de auditoria e estoque e o fluxo de exclusão condicionada. Em todos os diagramas, diferenciar o que existia na 0.1 daquilo que foi acrescentado após avaliações e revisão da PIT I.
 
-## Pontos pendentes (não apresentar como concluídos)
+## Continuidade e publicação
 
-- Completar critérios e RNFs de US-16/US-17 (incluindo prova de tempos de resposta de cadastro/edição/exclusão).
-- Criar fluxos reais de combos, horários, CEP/região, agendamento, avisos e demais histórias da PIT I.
-- Atualizar integralmente casos de uso, classes, sequência, atividades, modelo lógico/físico e dicionário após estabilização do esquema.
-- Publicar somente quando os testes e a avaliação da branch estiverem aprovados.
-- Integrar pagamentos reais e e-mail/SMS **apenas se houver serviço externo configurável**; caso contrário, declarar modo demonstrativo, dependências e critérios não comprovados no laudo e no segundo vídeo.
+O Ciclo A.2 registrou auditoria de alterações, exclusão lógica condicionada e migrações. Os Ciclos B–F completaram os componentes demonstrativos de combos, agenda, avisos internos, pagamentos simulados e a documentação de 27 tabelas. As integrações bancárias ou de SMS/e-mail não foram apresentadas como reais, e a suíte global 0.2 concluiu 93 testes locais.
 
-**Publicação:** não houve merge na `main` ou atualização do site `https://le-cupcake.onrender.com/` neste ciclo.
+Este ciclo integra a versão 0.2 publicada na `main`, disponível em https://le-cupcake.onrender.com/. As cinco avaliações e o primeiro vídeo foram preservados.
