@@ -1,13 +1,13 @@
 # Etapa 1 — Diagnóstico técnico e preparação da versão 0.2
 
-**Projeto:** Le Cupcake — PIT II · **situação:** levantamento técnico concluído, desenvolvimento ainda não concluído.
+**Projeto:** Le Cupcake — PIT II · **situação:** registro histórico do diagnóstico, usado no desenvolvimento concluído da versão 0.2.
 
 ## 1. Versões e registro histórico obrigatório
 
-- **Versão 0.1:** implementação inicial, apresentada no **primeiro vídeo**; não será apagada nem falsamente descrita como completa.
+- **Versão 0.1:** implementação inicial apresentada no primeiro vídeo, preservada como registro histórico.
 - **Avaliações:** os cinco registros já aprovados pelo tutor são mantidos como foram documentados. Suas observações são uma entrada para a melhoria; não serão reescritos para parecer que avaliaram funcionalidades que não existiam.
 - **Revisão do escopo:** confronto do código com as 25 histórias originais da PIT I. A recuperação dos requisitos mostrou lacunas que não decorrem necessariamente das avaliações.
-- **Versão 0.2 (evolução planejada):** deverá reunir as melhorias de usabilidade avaliadas e as implementações que atendam, na medida comprovada, às 25 histórias. O segundo vídeo apresentará esta evolução, com transparência sobre limitações gratuitas.
+- **Versão 0.2 (evolução realizada nos Ciclos A–F):** deverá reunir as melhorias de usabilidade avaliadas e as implementações que atendam, na medida comprovada, às 25 histórias. O segundo vídeo apresentará esta evolução, com transparência sobre limitações gratuitas.
 
 **Atenção:** a versão atualmente publicada e denominada 0.2 ainda é parcial. Não tomar sua numeração como prova de conclusão. O desenvolvimento ocorre nesta branch. Não alterar a `main` ou a aplicação pública sem validação e decisão de publicação.
 
@@ -40,13 +40,13 @@
 | Administração (US-16/17/18/22/24) | Inclusão/edição/ocultação de produto; relatórios resumidos, bloqueio de conta, custo de entrega | Faltam exclusão com restrições, trilhas completas, gráficos/filtros por categoria, edição de clientes, horários de retirada e regiões de entrega. |
 | Carga e desempenho (várias) | Testes Pytest de operações, sem carga representativa comprovada | Não foram comprovados os limites originais (1.000 pedidos, 500 transações, 1–8 segundos etc.). |
 
-**Persistência:** várias tabelas já foram definidas, mas isso não equivale a funcionalidades prontas. Hoje, o `init_database` somente executa o script do esquema se a tabela `usuarios` não existir; futuras alterações exigirão **migrações versionadas e idempotentes** para preservar os dados existentes.
+**Persistência no diagnóstico inicial:** o esquema-base possuía tabelas previstas para o domínio. O projeto incorporou posteriormente as migrações sequenciais 1–7, preservando dados existentes no processo de atualização.
 
 ## 4. Decisões técnicas para a execução
 
 - **Padrão de entrega:** manter FastAPI/Jinja2/SQLite no desenvolvimento, preservar a identidade visual e acrescentar módulos conforme necessário. Evitar reescrita completa sem justificativa.
 - **Migrações:** utilizar revisões versionadas de esquema com `PRAGMA user_version` do SQLite, savepoints e rollback; testar banco novo e upgrade de banco existente antes da publicação. A implementação inicial desta estratégia está em `migrations.py` (Etapa 2, ciclo A).
-- **Contratos de domínio:** separar serviços para catálogo, carrinho/combos, pedidos, logística/agendamento, cupons, notificações, pagamento, identidade e auditoria. A divisão será incremental e testada.
+- **Contratos de domínio:** separar serviços para catálogo, carrinho/combos, pedidos, logística/agendamento, cupons, notificações, pagamento, identidade e auditoria. A divisão foi desenvolvida de forma incremental e verificada por testes.
 - **Pedidos/estoque:** garantir transações atômicas, estoque de combo por componente, regras de mudança de status, cancelamento antes da produção e proteção contra processamento duplicado.
 - **Segurança:** CSRF, autorização, sessão segura, não armazenar dados de cartão, proteção de tokens, auditoria, dados fictícios na demonstração e segredos apenas em ambiente seguro.
 - **Dados no serviço gratuito:** não presumir persistência do SQLite no Render. Testar/recomendar armazenamento persistente antes de demonstrar continuidade dos pedidos.
@@ -56,7 +56,7 @@
 
 ## 5. Ordem de implementação e dependências
 
-| Ciclo futuro | Escopo | Histórias envolvidas | Critério de saída |
+| Ciclo previsto na etapa inicial | Escopo | Histórias envolvidas | Critério de saída |
 |---|---|---|---|
 | A — Base e consistência | Migrações, auditoria, catálogo dinâmico, carrinho, validações, regras de exclusão e status | US-01/02/03/06/16/17/19 | Testes novos + regressão, sem alterações que destruam dados. |
 | B — Recebimento e compra | CEP/regiões, taxas, retirada/horário, calendário e combos | US-04/05/13/14/24 | Checkout, preço e estoque consistente em todos os caminhos. |
