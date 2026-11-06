@@ -1,38 +1,39 @@
 # Le Cupcake — Projeto Integrador em Engenharia de Software II
 
-A Le Cupcake é uma loja virtual acadêmica de cupcakes, desenvolvida como continuidade do planejamento realizado na PIT I. A versão inicial 0.1 foi apresentada no primeiro vídeo. Após a etapa de avaliações e a revisão das 25 histórias de usuário, o projeto evoluiu para a versão 0.2.
+A Le Cupcake é uma aplicação acadêmica de loja virtual de cupcakes. O projeto dá continuidade ao planejamento da PIT I, com 25 histórias de usuário. A versão 0.1 foi apresentada no primeiro vídeo e acompanhada pela etapa de avaliações; a revisão dos requisitos e das avaliações orientou a versão 0.2.
 
-A aplicação está disponível em **https://le-cupcake.onrender.com/**, e o código-fonte está publicado na branch `main` deste repositório.
+**Aplicação publicada:** https://le-cupcake.onrender.com/
 
 ## Funcionalidades
 
-O catálogo apresenta cupcakes com pesquisa, filtros de categoria, preços e disponibilidade. O cliente pode selecionar produtos avulsos ou montar combos, alterar o carrinho, aplicar cupons e registrar pedidos demonstrativos.
+O catálogo possui busca, filtros por categoria, preços e informações de disponibilidade. O cliente pode montar um carrinho com produtos avulsos ou combos, utilizar cupons e registrar pedidos demonstrativos.
 
-O checkout oferece entrega ou retirada, cálculo local de taxas por região, horários de agendamento e opções de pagamento simuladas. Clientes cadastrados podem consultar pedidos e avaliações; a área administrativa permite gerenciar produtos, estoque, pedidos, cupons, entregas, contas e relatórios.
+No checkout, a aplicação apresenta modalidades de entrega ou retirada, taxas por região, opções de agendamento e pagamentos simulados. O cliente cadastrado pode consultar seu histórico e avaliações. A administração permite gerenciar produtos, pedidos, estoque, clientes, promoções, entregas e relatórios.
 
-O acompanhamento de pedidos é atualizado por consultas periódicas. Os avisos de andamento são exibidos dentro da aplicação.
+## Tecnologias e testes
 
-## Tecnologias
+O projeto utiliza Python 3.11+, FastAPI, Jinja2, HTML, CSS, JavaScript e SQLite. Após sete migrações, o banco possui 27 tabelas. A suíte automatizada de referência concluiu **93 testes locais aprovados**.
 
-O sistema utiliza Python 3.11+, FastAPI, Jinja2, HTML, CSS e JavaScript, com banco SQLite. A estrutura-base contém 23 tabelas e sete migrações elevam o modelo final a 27 tabelas, com 173 colunas, 34 chaves estrangeiras e 20 índices nomeados.
+As operações de pagamento são exclusivamente demonstrativas. O protótipo não realiza entregas físicas nem envia notificações de acompanhamento por SMS ou e-mail, e a hospedagem gratuita não oferece garantia de persistência dos dados SQLite após reinicializações.
 
-## Execução local
+## Executar no computador
 
 1. Instale Python 3.11 ou superior.
-2. Instale as dependências com `python -m pip install -r requirements.txt`.
-3. Execute `python iniciar.py` (ou `INICIAR_WINDOWS.bat` no Windows).
+2. Execute `python -m pip install -r requirements.txt`.
+3. Inicie com `python iniciar.py` ou `INICIAR_WINDOWS.bat` no Windows.
 4. Abra `http://127.0.0.1:8000`.
 
-As credenciais administrativas são configuradas pelas variáveis `ADMIN_EMAIL` e `ADMIN_PASSWORD`. Não inclua senhas, arquivos `.env` ou dados pessoais reais no repositório.
+O acesso administrativo utiliza as variáveis de ambiente `ADMIN_EMAIL` e `ADMIN_PASSWORD`. Não coloque senhas ou informações reais de clientes no repositório.
 
-## Testes
+## Documentos da entrega
 
-A suíte de referência foi executada em ambiente local por meio de `python -m pytest -q`, com **93 testes automatizados aprovados**. Os casos incluem catálogo, cadastro, pedidos, estoque, combos, agendamento, notificações internas e pagamento demonstrativo.
+- [Documentação técnica em Word](docs/Documentacao%20do%20projeto.docx)
+- [Documentação técnica em PDF](docs/Documentacao%20do%20projeto.pdf)
+- [Diagramas e protótipos](docs/Diagramas%20do%20sistema.md)
+- [Dicionário de dados](docs/Dicionario%20de%20dados.docx)
+- [Laudo de qualidade](docs/Laudo%20de%20qualidade.pdf)
+- [Avaliações dos participantes](docs/Avaliacoes%20dos%20participantes.pdf)
+- [Formulário da PIT II](docs/Atividade%20PIT%20II%20preenchida.docx)
+- [Referências das fotografias](docs/Referencias%20fotograficas.docx)
 
-A suíte não representa certificação de desempenho sob alto volume de acessos nem validação de serviços externos. O projeto não processa cobranças bancárias, não contrata entregas físicas e não envia SMS/e-mail de acompanhamento. A persistência do SQLite na hospedagem gratuita não é garantida após reinicializações.
-
-## Documentação e apresentação
-
-A pasta [`docs`](docs/Documentacao%20do%20projeto.md) reúne a documentação principal, a modelagem, o dicionário de dados, o laudo de qualidade, o formulário da PIT II e as cinco fichas de avaliação. As avaliações e o primeiro vídeo foram preservados como registros da versão inicial.
-
-O segundo vídeo apresenta a versão 0.2: https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing.
+O primeiro vídeo registra a versão 0.1. O segundo apresenta as mudanças da versão 0.2: https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing.
