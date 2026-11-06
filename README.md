@@ -63,7 +63,6 @@ As alterações feitas no painel são registradas na própria aplicação. O pro
 - [Dicionário de dados](docs/Dicionario%20de%20dados.docx)
 - [Laudo de qualidade](docs/Laudo%20de%20qualidade.pdf)
 - [Avaliações dos participantes](docs/Avaliacoes%20dos%20participantes.pdf)
-- [Formulário da PIT II](docs/Atividade%20PIT%20II%20preenchida.docx)
 - [Referências das fotografias](docs/Referencias%20fotograficas.docx)
 
 O primeiro vídeo registra a versão 0.1. O segundo apresenta as mudanças da versão 0.2: https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing.
