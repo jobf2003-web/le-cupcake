@@ -1,55 +1,17 @@
-# Etapa 2 — Ciclo A.2: gestão de produtos, exclusão condicionada e auditoria
+# Ciclo A.2 — Produtos, estoque e histórico de alterações
 
-**Le Cupcake / PIT II · versão-alvo 0.2 · branch `pit-ii-25-historias-completas`**
+Este ciclo ampliou os recursos administrativos desenvolvidos para a versão 0.2, mantendo os dados e as regras comerciais da implementação anterior.
 
-**Estado:** implementado e verificado localmente; **não implantado em produção**. Esta entrega é parte da evolução iniciada com a versão 0.1 e registrada após as cinco avaliações e a revisão das 25 histórias originais da PIT I. **Não modifica** o conteúdo histórico das avaliações nem o primeiro vídeo.
+## Desenvolvimento
 
-## Escopo efetivamente alterado
+O cadastro e a edição de produtos receberam validações adicionais de preço e estoque. A exclusão passou a utilizar arquivamento lógico, com registro da data da operação, para preservar o histórico de pedidos e evitar a remoção indevida de produtos vinculados a encomendas em andamento.
 
-| Tema | Estado do site anterior | Mudança desenvolvida neste ciclo |
-|---|---|---|
-| US-16 — Cadastro de produto | Já havia cadastro administrativo com validação de campos, preço, estoque e foto da biblioteca | Mantido, com registro estruturado de **criação** em `auditoria`. |
-| US-17 — Edição e remoção de produto | Administrador podia editar ou ocultar; não havia exclusão condicionada | Incluída ação **Excluir** com bloqueio se existir pedido ativo ou combo ativo. A remoção é **lógica**: o produto sai da vitrine e das opções de edição/reativação, mas seus dados e o histórico de pedidos permanecem preservados. |
-| US-17 — Histórico | Havia mensagens genéricas de auditoria | Cada edição registra os valores **antes/depois**, ator e data. Há tela de histórico por produto, inclusive arquivado. A tela mostra os campos alterados. |
-| Estoque | Alteração de estoque administrativo não gravava a diferença no livro de movimentos | Mudanças manuais agora criam movimentos com variação positiva/negativa, dentro da mesma transação do produto. Edição sem alteração não gera evento artificial. |
-| Persistência/migração | Migração SQLite interna até `user_version=1` | Criada migração interna para `user_version=2`, com `cupcakes.excluido_em` e índice. **Não confundir** a versão interna do esquema com a versão **0.2** da aplicação. |
-| Proteção | Administração e CSRF já existentes | Novas rotas exigem sessão de administrador e validação CSRF; exclusão é POST e não permite exclusão repetida. |
+As alterações administrativas são registradas na tabela de auditoria, incluindo os dados anteriores e posteriores. O histórico de movimentações do estoque também foi incorporado aos controles de gestão. A migração do esquema foi atualizada para a revisão 2, com a coluna `cupcakes.excluido_em` e índices de apoio. O banco manteve 23 tabelas nesta etapa.
 
-**Nota sobre a exclusão:** `excluido_em` e `ativo=0` deixam o produto indisponível. Optou-se por **arquivamento lógico**, não `DELETE` físico, para proteger integridade referencial, auditoria, avaliações e itens históricos dos pedidos. Mesmo quando não há pedidos, o registro é arquivado para preservar rastreabilidade. Produtos ligados a pedidos **recebidos, confirmados, em preparo, prontos ou em entrega** não podem ser excluídos. Também não podem ser excluídos se estiverem associados a combo ativo. Pedidos **concluídos ou cancelados** não bloqueiam arquivamento, pois seus registros são conservados.
+## Verificação
 
-## Testes executados
+A suíte chegou a **44 testes automatizados aprovados**, com nove casos adicionais sobre edição, auditoria, arquivamento, estoque e controle de acesso. As restrições de exclusão foram testadas em situações com pedidos ativos.
 
-**Resultado local:** `python -m pytest -q` → **44 testes aprovados** (35 anteriores + 9 novos), em cópia do código da branch com os arquivos deste ciclo.
+## Resultado na versão 0.2
 
-Os nove testes adicionais cobrem:
-
-1. criação/edição e comparação dos valores antes/depois, inclusive ajuste de estoque;
-2. inexistência de registros de alteração artificiais em edição sem mudanças;
-3. impedimento de excluir produto com pedido ativo;
-4. exclusão lógica, ocultação e impossibilidade de reativação;
-5. preservação de itens históricos e chaves estrangeiras após pedido concluído;
-6. impedimento de excluir produto pertencente a combo ativo;
-7. autenticação administrativa, CSRF e validação de limites de estoque;
-8. atualização de banco legado da migração v1 para a v2 com preservação de dados;
-9. repetição idempotente quando o `PRAGMA user_version` foi reiniciado.
-
-Foram também mantidos os testes de regressão da primeira parte do ciclo: filtros dinâmicos, preservação de estoque e cancelamento somente antes da produção.
-
-**Limites da comprovação:** não houve ensaio de carga, testes completos no navegador com automação de interface, validação do site Render após publicação ou testes de todas as 25 histórias. **Não afirmar** que US-16 ou US-17 estão definitivamente aceitas sem todos os critérios originais, inclusive seus requisitos não funcionais.
-
-## Alteração no modelo de dados e necessidade de atualizar diagramas
-
-- **`cupcakes`**: adicionada coluna `excluido_em TEXT`, nula enquanto o produto não foi arquivado.
-- **`auditoria`**: reaproveitada tabela existente para registro em JSON de snapshots de produto (campos antes/depois), vínculo com administrador e timestamp. Registros antigos de texto continuam legíveis.
-- **`estoque_movimentos`**: reaproveitada tabela existente para variações de estoque efetuadas administrativamente.
-- **`pedidos` + `pedido_itens`**: usadas para bloquear exclusões quando houver pedido ativo; não foram migradas nesta etapa.
-- **`combo_itens` + `combos`**: impedimento antecipado de arquivar ingrediente em combo ativo; o editor de combos foi implementado posteriormente no Ciclo B.
-- **23 tabelas preservadas**. A nova estrutura modifica uma tabela e cria um índice, sem mudar o número de tabelas.
-
-O modelo final 0.2 incorpora a nova coluna, as relações de auditoria e estoque e o fluxo de exclusão condicionada. Em todos os diagramas, diferenciar o que existia na 0.1 daquilo que foi acrescentado após avaliações e revisão da PIT I.
-
-## Continuidade e publicação
-
-O Ciclo A.2 registrou auditoria de alterações, exclusão lógica condicionada e migrações. Os Ciclos B–F completaram os componentes demonstrativos de combos, agenda, avisos internos, pagamentos simulados e a documentação de 27 tabelas. As integrações bancárias ou de SMS/e-mail não foram apresentadas como reais, e a suíte global 0.2 concluiu 93 testes locais.
-
-Este ciclo integra a versão 0.2 publicada na `main`, disponível em https://le-cupcake.onrender.com/. As cinco avaliações e o primeiro vídeo foram preservados.
+Os recursos administrativos deste ciclo integram a aplicação publicada. A montagem de combos, desenvolvida no Ciclo B, passou a observar também a disponibilidade dos produtos utilizados como componentes. O funcionamento demonstrativo e os limites de desempenho estão descritos na documentação da versão final.
