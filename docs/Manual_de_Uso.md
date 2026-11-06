@@ -1,4 +1,4 @@
-# Manual de uso — Le Cupcake 0.2 (branch em desenvolvimento)
+# Manual de uso — Le Cupcake 0.2 (versão publicada)
 
 Este manual descreve a versão 0.2 integrada à `main` e publicada no Render. Use apenas dados fictícios.
 
@@ -30,7 +30,7 @@ Instale Python 3.11+, execute `python -m pip install -r requirements.txt` e `pyt
 - **Não envia SMS/e-mail de andamento de pedidos**; mensagens são internas no sistema.
 - Recomendações e conteúdo nutricional são demonstrativos e dependem de dados cadastrados.
 - O SQLite pode ser apagado quando a instância gratuita for reiniciada; não use clientes/endereços reais.
-- Testes: `python -m pip install -r requirements-dev.txt && python -m pytest -q`. Resultado local de referência: **93 aprovados**. Faltam medições de carga, inspeção visual em navegador real e confirmação da publicação final.
-- Fotografias externas e licenças devem ser conferidas antes do uso público.
+- Testes: `python -m pip install -r requirements-dev.txt && python -m pytest -q`. Resultado local de referência: **93 aprovados**. O deploy da 0.2 foi confirmado como ativo no Render. A suíte automatizada não abrange certificação de carga, medições formais de latência nem testes em todos os dispositivos.
+- As fotografias externas e suas referências estão documentadas no arquivo de fontes; sua exibição está sujeita à disponibilidade das origens e às licenças correspondentes.
 
 O primeiro vídeo e as cinco avaliações pertencem ao histórico da versão anterior. O segundo vídeo apresenta as atualizações da versão 0.2 publicada: https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing.
