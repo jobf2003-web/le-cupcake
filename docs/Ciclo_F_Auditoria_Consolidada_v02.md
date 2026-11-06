@@ -1,12 +1,12 @@
 # Ciclo F — auditoria, modelagem e consolidação da Le Cupcake 0.2
 
-**Situação: PRÉ-HOMOLOGAÇÃO.** Este relatório é a referência técnica da branch `pit-ii-25-historias-completas`. O site público e a branch `main` ainda representam a versão anterior; nenhum vídeo foi regravado.
+**Situação: DOCUMENTAÇÃO DA VERSÃO 0.2 PUBLICADA.** Os Ciclos A–F foram integrados à `main`, com implantação confirmada no Render. O primeiro vídeo e as cinco avaliações são registros da versão inicial 0.1; o segundo vídeo apresenta a 0.2.
 
 ## Histórico e causalidade
 
 A PIT I definiu **25 histórias**. A PIT II exige revisar escopo, UML, IHC, modelos conceitual/lógico/físico, dicionário, codificação, testes, cinco avaliações em PDF, laudo com evidências e dois vídeos.
 
-A sequência factual adotada é **0.1 (implementação inicial e primeiro vídeo) → cinco avaliações preservadas → revisão dos requisitos originais → Ciclos A–E da versão 0.2 → Ciclo F → futura homologação/publicação**. A revisão de requisitos identificou lacunas não necessariamente apontadas nas avaliações. O primeiro vídeo permanecerá como registro histórico. A versão 0.2 é a evolução documentada diretamente a partir da implementação inicial 0.1, após as avaliações e a revisão dos requisitos da PIT I.
+A sequência factual adotada é **0.1 (implementação inicial e primeiro vídeo) → cinco avaliações preservadas → revisão dos requisitos originais → Ciclos A–E da versão 0.2 → Ciclo F → integração à `main` e publicação no Render**. A revisão de requisitos identificou lacunas não necessariamente apontadas nas avaliações. O primeiro vídeo permanecerá como registro histórico. A versão 0.2 é a evolução documentada diretamente a partir da implementação inicial 0.1, após as avaliações e a revisão dos requisitos da PIT I.
 
 ## Fontes efetivamente verificadas
 
@@ -22,7 +22,7 @@ A sequência factual adotada é **0.1 (implementação inicial e primeiro vídeo
 
 Consultar [Mapa_25_Historias.md](Mapa_25_Historias.md). O fato de uma função central existir não comprova todos os critérios não funcionais. A versão atual contém recursos centrais implementados e **recursos demonstrativos/parciais**, não uma afirmação de 25 histórias integralmente homologadas.
 
-**Limitações incontornáveis ou pendentes:**
+**Limitações declaradas do protótipo:**
 - **US-12:** meios PIX/cartão demonstrativos sem cobrança; **US-25: nenhum gateway externo integrado**.
 - **US-11/21:** avisos dentro do aplicativo, não SMS/e-mail para mudanças de pedidos.
 - **US-07:** recuperação por token depende de SMTP/HTTPS configurado para envio real.
@@ -37,7 +37,7 @@ Consultar [Mapa_25_Historias.md](Mapa_25_Historias.md). O fato de uma função c
 
 [Índice de modelos](modelagem_v02/README.md): casos de uso, classes de domínio, dois diagramas de sequência, atividades, modelo conceitual e visões lógicas. **Pagamento no diagrama é simulador local, sem conexão a PSP**. **Notificação no diagrama é canal app, sem envio externo**. Diagramas e dicionário físicos foram extraídos do banco de teste migrado; os campos e FKs não foram inferidos de diagramas de planejamento.
 
-A modelagem final deverá ser reconferida com o código publicado. Documentos de interface são protótipos esquemáticos, não capturas de teste.
+Os modelos representam a implementação 0.2 integrada à `main`. Os documentos de interface são protótipos esquemáticos, não capturas de testes.
 
 ## Controle de consistência dos documentos da versão 0.2
 
@@ -48,26 +48,19 @@ Os registros de avaliação e o primeiro vídeo pertencem à versão 0.1 e perma
 - **Pagamentos:** métodos demonstrativos; nenhuma transação financeira ou gateway real.
 - **Comunicação:** notificações internas; SMTP e SMS externos não homologados.
 - **Relatórios:** valores de pedidos registrados, não receita financeira recebida.
-- **Evidências:** prints locais da 0.2 identificados como locais; a validação do Render permanece pendente.
+- **Evidências:** prints locais da 0.2 identificados como locais; o serviço publicado foi confirmado no Render em implantação ativa.
 - **Entrega acadêmica:** formulário, laudo e documentação principal devem relatar somente 0.1 → avaliações → revisão da PIT I → 0.2 e guardar as limitações verificadas.
 
-## Instruções PIT II: evidências e pendências
+## Correspondência com a atividade PIT II
 
-| Situação | Evidências atuais | Pendência |
-|---|---|---|
-| 1 — escopo, UML, IHC, dados | Matriz, modelos, dicionário e protótipos produzidos | Conferência final com telas/rotas do site publicado |
-| 2 — código, Git, testes, manual, vídeo ≥5 minutos | Branch, teste local, manual atualizado e primeiro vídeo histórico | Homologação da branch, persistência pública, teste em navegador e eventual exigência do tutor sobre limites |
-| 3 — cinco opiniões, correções, laudo e vídeo ≤5 minutos | Cinco registros em PDF preservados; melhorias e ciclos documentados | Novas evidências após publicação, laudo/formulário final e segundo vídeo compatível com a edição publicada |
+| Situação | Evidência de entrega |
+|---|---|
+| 1 — escopo, UML, IHC e dados | Matriz das 25 histórias, diagramas, modelos conceitual/lógico/físico, dicionário de dados e protótipos |
+| 2 — código, Git, testes, manual e vídeo inicial | Código da versão 0.2 publicado na `main`, site ativo no Render, 93 testes locais e manual; primeiro vídeo documenta a 0.1 |
+| 3 — cinco avaliações, melhorias, laudo e vídeo de atualização | Cinco fichas preservadas, melhorias de interface e funcionalidades registradas, laudo com evidências comparativas e segundo vídeo da 0.2 |
 
-**Não alterar os nomes, datas ou pareceres das cinco avaliações retroativamente.** Distinguir sempre melhoria motivada por avaliação de requisito faltante identificado pela revisão da PIT I.
+As limitações de pagamentos, notificações externas, logística e certificação de carga pertencem ao escopo do protótipo acadêmico e são declaradas nos documentos. Os registros das avaliações não foram alterados.
 
-## Critério para liberar publicação e entrega
+## Registro de publicação
 
-- [ ] Verificar 25 histórias no site publicado, incluindo erros, permissões, estoque, agenda e pagamento demonstrativo.
-- [ ] Inspecionar visualmente em navegador desktop e mobile.
-- [ ] Medir ou declarar não comprovadas metas de latência e concorrência da PIT I.
-- [ ] Verificar dados após reinício/redeploy no Render e licenças das fotos.
-- [ ] Atualizar os DOCX/PDF definitivos, o formulário oficial, laudo, links dos vídeos e segundo vídeo.
-- [ ] Não mesclar à `main` antes da homologação.
-
-**Conclusão do Ciclo F:** documentação/modelagem de pré-homologação consolidada, com limitações evidentes. A entrega acadêmica final e o deploy público continuam pendentes; nenhum resultado não testado foi descrito como concluído.
+A evolução do projeto segue a sequência **versão 0.1 → avaliações e revisão da PIT I → desenvolvimento da versão 0.2**. A publicação da 0.2 na `main` e no serviço https://le-cupcake.onrender.com/ foi confirmada no Render. O segundo vídeo está disponível em https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing. A documentação e as evidências preservam a distinção entre testes automatizados, capturas locais e demonstração do sistema publicado.
