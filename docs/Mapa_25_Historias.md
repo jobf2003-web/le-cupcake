@@ -1,6 +1,6 @@
-# Mapa das 25 histórias — versão 0.2 consolidada (pré-homologação)
+# Mapa das 25 histórias — versão 0.2 publicada
 
-**Fonte:** documento original da PIT I, com 25 histórias. **Situação:** código local da branch `pit-ii-25-historias-completas`, após as cinco avaliações e a revisão das histórias.
+**Fonte:** documento original da PIT I, com 25 histórias. **Situação:** código dos Ciclos A–F integrado à `main` e publicado no Render, após as cinco avaliações e a revisão da PIT I.
 
 **Importante:** nenhuma história foi declarada 100% homologada em todos os requisitos não funcionais. `Núcleo disponível` é fluxo central implementado/testado localmente; `demonstrativo` não é integração real; `parcial` possui requisitos faltantes; `não implementado` implica ausência de integração externa.
 
@@ -38,4 +38,4 @@
 
 **Restrições:** não existe pagamento real nem gateway (US-12/25), e-mail/SMS de pedido (US-11/21), logística contratada (US-04/05/13/24); a recuperação de senha depende de SMTP configurado (US-07). Consulta de pedidos é por polling 15 s (US-06/19), não push.
 
-A referência técnica do desenvolvimento da versão 0.2 é a documentação do [Ciclo F](Ciclo_F_Auditoria_Consolidada_v02.md). Os arquivos oficiais de entrega devem refletir o estado desta branch, incluindo 27 tabelas no banco migrado e 93 testes locais, e serão conferidos após a publicação pública.
+A referência técnica do desenvolvimento da versão 0.2 é a documentação do [Ciclo F](Ciclo_F_Auditoria_Consolidada_v02.md). Os arquivos oficiais de entrega refletem a versão 0.2, com 27 tabelas no banco migrado, 93 testes locais de referência e limites do protótipo declarados.
