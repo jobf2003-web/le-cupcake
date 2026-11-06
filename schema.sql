@@ -1,6 +1,6 @@
 -- LE CUPCAKE - PIT II | ESQUEMA-BASE DA VERSAO 0.2 CONSOLIDADA
 -- Este arquivo cria 23 tabelas iniciais. O banco fisico efetivo exige migrations.py,
--- com PRAGMA user_version=7 e 27 tabelas, segundo a auditoria do Ciclo F.
+-- com PRAGMA user_version=7 e 27 tabelas apos as migracoes da versao 0.2.
 -- Valores monetarios em centavos. Pagamentos locais sao SOMENTE demonstrativos;
 -- nao ha gateway externo nem cobranca real. Nunca armazenar dados de cartao.
 PRAGMA foreign_keys = ON;
