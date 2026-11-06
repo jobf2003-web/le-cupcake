@@ -1,6 +1,6 @@
-# Le Cupcake — PIT II · Etapa 2, Ciclo E · versão 0.2 em desenvolvimento
+# Le Cupcake — PIT II · Etapa 2, Ciclo E · versão 0.2
 
-**Situação do ciclo:** implementado e testado localmente; ainda não publicado no site. **Não é homologação integral da US-12 ou US-25.**
+**Situação do ciclo:** implementado, testado localmente e incluído na versão 0.2 publicada. **Não é homologação integral da US-12 ou US-25.**
 
 ## 1. Registro da evolução real do projeto
 
@@ -46,19 +46,19 @@ Os novos testes cobrem: opções e avisos na interface, rejeição de método in
 6. Requisitos não funcionais de 5/8 segundos e 500 transações simultâneas permanecem **não comprovados**; as execuções locais não constituem ensaio formal de carga.
 7. Persistência na hospedagem gratuita pode não ser garantida, como já registrado nos ciclos anteriores; não apresentar pedidos como reservas ou encomendas comerciais.
 
-Esta informação deverá permanecer no laudo, na matriz de rastreabilidade, na documentação geral da versão 0.2, nos diagramas (com a fronteira do **simulador local**, sem ator gateway externo realmente conectado) e no segundo vídeo.
+Essas características estão declaradas no laudo, na matriz de rastreabilidade, na documentação geral da versão 0.2 e nos diagramas: pagamentos são demonstrativos, sem um gateway externo conectado.
 
-## 5. Diagramação/modelagem a atualizar na consolidação da 0.2
+## 5. Modelo consolidado da versão 0.2
 
 - **Casos de uso:** selecionar método; confirmar/recusar **em simulador local**; consultar resultado. Um gateway real deve ser mostrado apenas como **dependência não implementada**.
 - **Atividades:** `recebido → pagamento demonstrativo pendente → aprovar/recusar → confirmado/cancelado`, evidenciando que a confirmação final de compra real não existe.
 - **Sequência:** cliente → checkout → SQLite/pagamentos → simulador local → evento de pagamento/pedido → estoque; sem chamada a PSP.
 - **Classes/modelo lógico:** `pedidos (1:N) pagamentos (1:N) pagamento_eventos`; preservação de pedidos antigos; estados e auditoria.
-- **Modelo físico/dicionário de dados:** incorporar `pagamento_eventos` (v7) e os índices; nenhuma coluna de cartão/segredo.
+- **Modelo físico/dicionário de dados:** esquema consolidado com `pagamento_eventos` (v7) e índices; nenhuma coluna de cartão/segredo.
 - **Evolução 0.1→0.2:** preservar fidelidade histórica e separar motivação das avaliações da correção decorrente da revisão das 25 histórias.
 
-## 6. Publicação e conclusão
+## 6. Publicação e registro final
 
-Todos os arquivos deste ciclo pertencem à branch isolada `pit-ii-25-historias-completas`. **Não mesclar à `main`, não substituir o site do Render e não atualizar a documentação oficial como “concluída” até a homologação final das 25 histórias e as limitações identificadas.** O primeiro vídeo permanece inalterado.
+O Ciclo E integra a versão 0.2 publicada na `main` e implantada no Render. O Ciclo F consolidou o dicionário de 27 tabelas, os diagramas e o resultado global de 93 testes automatizados locais aprovados. Os métodos PIX/cartão continuam sendo exclusivamente simulações: estados de pagamento `pendente`, `aprovado` e `recusado` descrevem eventos internos, não transferências financeiras.
 
-**Próxima fase:** consolidação da modelagem UML, dados e documentação da versão 0.2, com auditoria final das 25 histórias e testes de navegação e desempenho dentro das condições do plano gratuito.
+O primeiro vídeo e as cinco avaliações foram preservados como registros da 0.1; o segundo vídeo apresenta a evolução da 0.2.
