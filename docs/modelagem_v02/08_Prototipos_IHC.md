@@ -19,4 +19,4 @@ flowchart TD
 
 **Mensagens exigidas pela IHC:** estoque insuficiente, CEP não atendido, horário indisponível, cupom inválido, bloqueio de cancelamento em preparo, link de redefinição indisponível sem SMTP, pagamento sem cobrança real.
 
-**Limitação:** não houve homologação visual de todas as telas em navegador real neste ciclo. As fotos/licenças também devem ser conferidas na versão publicada.
+**Escopo:** estes diagramas documentam os fluxos e a IHC da versão 0.2, mas não são capturas de navegação. A aplicação publicada utiliza fotografias externas com referências documentadas no repositório.
