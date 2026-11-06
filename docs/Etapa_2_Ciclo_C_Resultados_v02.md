@@ -1,30 +1,19 @@
-# Le Cupcake — PIT II · Etapa 2 · Ciclo C: cliente, promoções e dados de produtos
+# Ciclo C — Contas, promoções e informações dos produtos
 
-**Status:** implementado e aprovado nos testes automáticos locais, posteriormente integrado à versão 0.2 publicada no Render. Este trabalho complementa os Ciclos A e B na branch `pit-ii-25-historias-completas`, prosseguindo com a **implementação da versão 0.2**, de acordo com a sequência histórica pactuada: **versão inicial 0.1 → cinco avaliações + revisão da PIT I → desenvolvimento da versão 0.2**. Os registros dos avaliadores não foram alterados. As funcionalidades listadas abaixo não existiam integralmente na versão inicial e não devem ser apresentadas retroativamente como existentes na 0.1.
+O Ciclo C deu continuidade à versão 0.2 com melhorias para clientes e informações de catálogo.
 
-## Implementações verificadas
+## Desenvolvimento
 
-| História | Implementação neste ciclo | Evidência e limites |
-|---|---|---|
-| US-07 — recuperação de senha | Interface de solicitação, token aleatório de uso único armazenado somente como SHA-256, prazo de 30 minutos, limite de três solicitações por conta em 15 minutos, troca de senha com PBKDF2, invalidação de outros links e de sessões anteriores à troca. Sem revelar se e-mail existe. | Testes de uso único, expiração, CSRF, acesso antigo revogado e resposta indistinguível. **E-mail real exige SMTP configurado**, com `PUBLIC_BASE_URL` HTTPS, `SMTP_HOST` e `SMTP_FROM`; nenhum envio real foi executado no plano gratuito. Sem configuração, a interface informa a indisponibilidade e o servidor devolve 503. Teste SMTP usa adaptador simulado, não comprova entrega externa. |
-| US-08 — recomendações por histórico | Na página inicial, após pedidos de usuário autenticado, sugestões ordenadas pelas categorias dos itens comprados, inclusive componentes de combos. Exclui produtos indisponíveis e tenta mostrar três opções quando houver estoque. | Testes com pedidos comuns, compras de combos e estoque zerado. Sem compras, não afirma ter personalização nem exibe sugestão falsamente personalizada. Técnica é preferência por categoria, **não recomendação avançada**. |
-| US-09/20 — promoções | Administrador define datas de validade dos novos cupons; vitrine mostra os cupons realmente válidos, ativos e com saldo de usos. O checkout já validava limites e desconto do lado do servidor. | Teste de período válido, expirado e datas invertidas. Expiração é efetiva na consulta (filtragem); a flag `ativo` não precisa ser modificada automaticamente para excluir o cupom vencido. Sem integração externa de marketing. |
-| US-15 — ingredientes e alergênicos | Administrador informa ingredientes, texto nutricional e marca alergênicos da receita em relação específica; o cliente vê alerta quando há alergênicos cadastrados. Sem dados confirmados, a página informa explicitamente que as informações **não foram verificadas**. | Teste de tela, gravação relacional, auditoria, IDs inválidos e preservação em migração. **Não foram inventadas informações sobre receitas, calorias ou segurança alimentar**. O protótipo não fornece certificação nutricional ou validação de dados alimentares reais. |
+A recuperação de conta recebeu formulários próprios e tokens temporários de uso único, armazenados de forma protegida. A troca de senha invalida links anteriores e sessões antigas. O envio do link por e-mail depende da configuração de um servidor SMTP; os testes locais utilizaram um adaptador de simulação.
 
-## Banco e rastreabilidade
+As recomendações passaram a considerar as categorias presentes no histórico de pedidos do cliente autenticado. Os cupons receberam regras de validade e exibição das promoções ativas. O cadastro de produtos passou a contemplar ingredientes e alergênicos, com alertas nas páginas de produto quando essas informações estiverem disponíveis.
 
-A migração SQLite nº **5**, aplicada após as migrações anteriores e preservando pedidos e usuários, cria `password_reset_tokens`, adiciona `usuarios.sessao_versao` e `cupcakes.ingredientes`. As tabelas de alergênicos e seus relacionamentos já existiam, mas agora possuem telas e fluxos de cadastro. Há **26 tabelas de aplicação** após a migração. O código registra alterações de alergênicos na auditoria administrativa.
+A quinta migração criou `password_reset_tokens` e acrescentou campos de sessão e ingredientes. O esquema chegou a 26 tabelas.
 
-As novas entidades/atributos foram consolidados nos diagramas finais do Ciclo F de classes, sequência de redefinição, casos de uso de cliente e modelo físico/dicionário de dados da documentação final da **0.2**. Não foram alterados os diagramas históricos neste ciclo.
+## Verificação
 
-## Resultado dos testes
+Foram registrados **69 testes automatizados aprovados**, incluindo nove novos casos de autenticação, tokens, recomendações e promoções.
 
-- Suíte total: **69 testes automatizados aprovados** em ambiente local (60 do ciclo anterior + nove novos testes sobre relacionamento/segurança e promoções).
-- Executado com `python -m pytest -q`; sem servidor SMTP real, teste de carga, navegador físico ou garantia da persistência do banco no Render.
-- Testes de e-mail apenas com adaptador simulado e garantias locais de proteção de tokens; **não representam envio de e-mail externo comprovado**.
+## Resultado na versão 0.2
 
-## Continuidade e registro final
-
-Os ciclos posteriores incorporaram notificações internas, relatórios, gerenciamento de contas e pagamentos simulados, com os limites das integrações externas declarados. O Ciclo F consolidou os diagramas e o dicionário do banco de 27 tabelas; a versão 0.2 foi integrada à `main` e publicada no Render.
-
-A recuperação por e-mail depende de SMTP configurado, os dados nutricionais não são certificados e as cinco avaliações e o primeiro vídeo permaneceram sem alterações.
+Os recursos integram a versão publicada. As recomendações utilizam categorias de compras anteriores e não um serviço externo de personalização. Os dados nutricionais dependem das informações cadastradas, sem certificação alimentar. O envio de recuperação por e-mail requer a infraestrutura SMTP correspondente.
