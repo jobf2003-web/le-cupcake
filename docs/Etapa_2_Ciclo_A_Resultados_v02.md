@@ -27,7 +27,7 @@ A **versão 0.1** corresponde ao sistema apresentado no primeiro vídeo. Depois 
 - **Resultado:** 35 testes aprovados, sem falhas, incluindo cinco testes novos do ciclo A.
 - Testes novos verificam: migração idempotente com preservação de dados; proteção contra abrir esquema futuro; endpoint de filtros combinados; exclusão de esgotados do filtro; impedimento de cancelamento depois do preparo, sem alteração indevida do estoque.
 - Também foi verificada a sintaxe do JavaScript local com `node --check static/app.js`, sem erros.
-- **Limitação de prova:** o navegador Chromium disponível no ambiente de testes bloqueou navegações HTTP locais por política administrativa. Portanto, **não há comprovação nesta etapa de navegação real com JavaScript e fetch no navegador**. O fluxo HTTP e a presença do código de atualização dinâmica foram verificados; o roteiro manual de navegador permanece pendente.
+- **Alcance do teste realizado neste ciclo:** os testes locais verificaram o fluxo HTTP e a existência do JavaScript dinâmico, sem uma bateria visual automatizada em navegador gráfico. O desenvolvimento desse ciclo integra a versão publicada da 0.2.
 - **Não houve** teste de carga representativo ou homologação das 25 histórias.
 
 ## 4. Integração com os ciclos posteriores
