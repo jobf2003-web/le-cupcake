@@ -33,6 +33,6 @@ A suíte não representa certificação de desempenho sob alto volume de acessos
 
 ## Documentação e apresentação
 
-A pasta `docs` reúne a documentação do projeto, a modelagem UML, o dicionário de dados, a rastreabilidade das histórias, os resultados dos ciclos de desenvolvimento, o laudo de qualidade e o formulário da PIT II. As cinco fichas de avaliação e o primeiro vídeo foram preservados como registros da versão inicial.
+A pasta [`docs`](docs/Documentacao%20do%20projeto.md) reúne a documentação principal, a modelagem, o dicionário de dados, o laudo de qualidade, o formulário da PIT II e as cinco fichas de avaliação. As avaliações e o primeiro vídeo foram preservados como registros da versão inicial.
 
 O segundo vídeo apresenta a versão 0.2: https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing.
