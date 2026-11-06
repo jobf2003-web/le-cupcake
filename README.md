@@ -58,10 +58,10 @@ O código da versão 0.2 passou em **93 testes automatizados locais**; a checage
 - [Formulário oficial da PIT II](docs/PIT_atividade_Le_Cupcake_Preenchida.docx): mantém a estrutura do modelo da faculdade e os cinco registros de avaliação. Antes da entrega, conferir sua sincronização com a cópia mais recente e preencher o link verdadeiro do segundo vídeo.
 - [Fontes das fotografias](docs/Referencias_Fotograficas_Simplificadas.docx). A publicação deve observar atribuições CC BY/CC BY-SA.
 
-**Endereço do serviço no Render:** https://le-cupcake.onrender.com/. A integração do código à `main` está confirmada, mas a atualização do serviço nesse endereço deve ser verificada no painel do Render; não presumir o deploy somente pelo merge.
+**Endereço do serviço no Render:** https://le-cupcake.onrender.com/. A implantação da versão 0.2 integrada à `main` foi confirmada como ativa no painel do Render.
 
-**Primeiro vídeo:** mantido como demonstração inicial, sem regravação. **Segundo vídeo:** deverá representar a versão 0.2 publicada após a verificação no Render, com limites do plano gratuito explicitados. Não afirmar que os registros de avaliações foram alterados.
+**Primeiro vídeo:** registro da implementação inicial 0.1. **Segundo vídeo:** versão 0.2 publicada, com mudanças de interface e funções da revisão das histórias, disponível em https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing. As cinco avaliações foram preservadas.
 
 ## Segurança e alcance
 
-O projeto é acadêmico; não processa pagamentos ou cartões, não provê logística real e não garante persistência após reinício na hospedagem gratuita. Os testes de carga de 500/1.000 operações concorrentes e as metas de latência da PIT I **não foram comprovados**. A declaração de atendimento integral depende da aceitação acadêmica dos limites, dos testes manuais e da homologação final.
+O projeto é acadêmico; não processa pagamentos ou cartões, não provê logística real e não garante persistência após reinício na hospedagem gratuita. A suíte de testes não inclui certificação de desempenho para 500/1.000 operações concorrentes, nem medição formal das metas de latência da PIT I. Os limites de escopo são declarados nos documentos técnicos.
