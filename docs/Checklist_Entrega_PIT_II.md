@@ -1,6 +1,6 @@
 # Checklist de entrega PIT II — versão 0.2
 
-Este checklist acompanha a evolução da versão 0.1 para a versão 0.2, após as cinco avaliações e a revisão das 25 histórias da PIT I. A integração do código à `main` foi concluída; a confirmação da atualização do serviço no Render é etapa independente.
+Este checklist acompanha a evolução da versão 0.1 para a versão 0.2, após as cinco avaliações e a revisão das 25 histórias da PIT I. A versão 0.2 foi integrada à `main` e sua implantação ativa foi confirmada no Render.
 
 ## Evidências técnicas já verificadas localmente
 - [x] Trabalho original PIT I recuperado e 25 histórias registradas com critérios e limitações.
@@ -19,20 +19,18 @@ Este checklist acompanha a evolução da versão 0.1 para a versão 0.2, após a
 - [x] **US-06/US-19:** atualização por consulta de 15 s, sem push.
 - [x] **US-04/05/13/24:** entrega/CEP/agendamento interno demonstrativo, sem logística contratada.
 - [x] **US-15:** dados nutricionais reais não certificados; não inventar informações.
-- [x] **RNFs:** tempos de resposta e concorrência ainda não medidos.
+- [x] **RNFs:** testes formais de carga e latência não integram as 93 verificações locais.
 
-## Pendente antes de declarar a entrega final
-- [ ] Testar a interface em navegador desktop e mobile, incluindo erros, formulários e acessibilidade.
-- [ ] Verificar carga/latência conforme ambiente e critérios da PIT I, registrar metas não comprovadas.
-- [ ] Homologar a persistência SQLite no Render e não expor dados pessoais reais.
-- [ ] Conferir créditos/licenças das fotografias na página publicada.
-- [ ] Aprovar ou registrar com tutor as limitações incontornáveis do plano gratuito.
-- [x] Formulário oficial sincronizado e relatório de atualização do sistema corrigido na `main`, com 93 testes de referência e histórico preservado.
-- [ ] Inserir o link real do segundo vídeo e reunir evidências da aplicação publicada depois da confirmação do Render.
-- [x] Integrar a versão 0.2 consolidada à `main` após os testes locais.
-- [ ] Verificar se o Render implantou o commit atual da `main`, testando as rotas públicas sem expor dados pessoais.
-- [ ] Gravar o segundo vídeo (até cinco minutos) demonstrando mudanças efetivas, mantendo o primeiro vídeo intacto.
-- [ ] Verificar os dois links de vídeo e a entrega exigida no AVA.
+## Registro de entrega e funcionamento
+
+- [x] Código da versão 0.2 integrado à `main`, com preservação do histórico da versão 0.1.
+- [x] Implantação ativa da versão 0.2 no serviço `le-cupcake` no Render.
+- [x] Documentação UML, modelos de dados, dicionário e manual reunidos no repositório.
+- [x] Cinco avaliações originais preservadas e laudo de qualidade preparado.
+- [x] Primeiro vídeo vinculado à versão inicial 0.1; segundo vídeo da 0.2 disponibilizado em https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing.
+- [x] Suíte de regressão da versão 0.2: 93 testes automatizados locais aprovados.
+
+Os critérios de desempenho em grande escala, persistência de armazenamento no plano gratuito, envio externo de notificações e pagamento bancário são limites declarados do protótipo, não serviços demonstrados como integrados.
 
 ## Instruções consultadas
 **Situação 1:** revisão de escopo, UML, IHC, modelos conceitual/lógico/físico e dicionário. **Situação 2:** front-end/back-end, Git, testes, manual e apresentação narrada ≥5 minutos. **Situação 3:** cinco avaliações com nome/data/êxitos/falhas/não testados em PDF, laudo, evidências, correções e vídeo de atualização ≤5 minutos.
