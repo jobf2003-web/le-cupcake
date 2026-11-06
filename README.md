@@ -65,4 +65,4 @@ As alterações feitas no painel são registradas na própria aplicação. O pro
 - [Avaliações dos participantes](docs/Avaliacoes%20dos%20participantes.pdf)
 - [Referências das fotografias](docs/Referencias%20fotograficas.docx)
 
-O primeiro vídeo registra a versão 0.1. O segundo apresenta as mudanças da versão 0.2: https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing.
+O primeiro vídeo registra a versão 0.1: [assistir ao primeiro vídeo](https://drive.google.com/file/d/1jj2vhp1Bgc8iYXeqt2CTQA2VwP723w0I/view?usp=drive_link). O segundo apresenta as mudanças da versão 0.2: [assistir ao segundo vídeo](https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing).
