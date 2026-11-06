@@ -1,38 +1,43 @@
-# Diagramas e protótipos da Le Cupcake
+# Diagramas do sistema
 
-Os diagramas representam a estrutura e o funcionamento da versão 0.2 da aplicação. A descrição dos requisitos, das regras e dos testes consta na [documentação técnica](Documentacao%20do%20projeto.docx) e no [dicionário de dados](Dicionario%20de%20dados.docx).
+Os diagramas abaixo foram atualizados para refletir corretamente as relações do domínio e do banco de dados da versão 0.2 da Le Cupcake. Eles são simplificados, mas seguem a estrutura representada em `schema.sql` e nas migrações do projeto.
 
 ## Casos de uso
 
-![Diagrama de casos de uso](diagramas/Casos%20de%20uso.png)
+![Casos de uso corrigidos](diagramas/Casos%20de%20uso%20corrigido.svg)
 
-## Classes do domínio
+O diagrama separa os fluxos do **cliente** e do **administrador**. Os pagamentos continuam demonstrativos, sem integração real com bancos ou gateways.
 
-![Diagrama de classes](diagramas/Classes.png)
+## Classes de domínio
 
-## Sequência do checkout
+![Classes de domínio corrigidas](diagramas/Classes%20de%20dominio%20corrigido.svg)
+
+As associações principais agora correspondem às entidades do sistema. Em especial:
+
+- **Categoria** se relaciona com **Cupcake**;
+- **Pedido** se relaciona com **ItemPedido** e **Pagamento**;
+- **Avaliação** depende de **Usuário** e **Cupcake**;
+- **ItemPedido** referencia **Cupcake** ou **Combo**, e não ambos ao mesmo tempo.
+
+## Relacionamentos principais do banco
+
+![Relacionamentos corrigidos](diagramas/Relacionamentos%20corrigidos.svg)
+
+Este diagrama resume as tabelas centrais do banco SQLite. Ele evita associações inexistentes, como ligações diretas entre **Cupcake** e **Pagamento** ou entre **Categoria** e **Pedido**.
+
+## Diagramas já válidos
+
+### Sequência do checkout
 
 ![Sequência de finalização do pedido](diagramas/Sequencia%20do%20checkout.svg)
 
-O checkout registra o pedido e reserva o estoque. As operações de pagamento demonstrativo ocorrem dentro da aplicação, sem comunicação com bancos ou gateways.
-
-## Sequência de acompanhamento
+### Sequência de acompanhamento
 
 ![Sequência de acompanhamento de pedidos](diagramas/Sequencia%20de%20acompanhamento.svg)
 
-O administrador registra a mudança de status. O cliente consulta o estado do pedido periodicamente e recebe avisos internos no sistema.
-
-## Atividades do pedido
+### Atividades do pedido
 
 ![Atividades de pedidos e pagamento demonstrativo](diagramas/Atividades%20do%20pedido.svg)
-
-O cancelamento é permitido somente antes do início do preparo. Pagamentos simulados não representam transferência financeira.
-
-## Modelo conceitual e relacionamentos
-
-![Diagrama de relacionamentos](diagramas/Relacionamentos.png)
-
-O esquema SQLite possui 23 tabelas na estrutura inicial e 27 tabelas após as sete migrações. A descrição de atributos e relações está no dicionário de dados.
 
 ## Protótipos de interface
 
@@ -47,5 +52,3 @@ O esquema SQLite possui 23 tabelas na estrutura inicial e 27 tabelas após as se
 ### Administração
 
 ![Protótipo da área administrativa](diagramas/Prototipo%20da%20administracao.png)
-
-Os protótipos são representações esquemáticas da interface. As comparações das versões 0.1 e 0.2 estão no [laudo de qualidade](Laudo%20de%20qualidade.pdf).
