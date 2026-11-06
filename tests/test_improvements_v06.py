@@ -20,7 +20,7 @@ def test_shortcut_and_visual_style_remain_available(client):
     assert page.status_code == 200
     assert "Pular para o conteúdo principal" in page.text
     assert 'id="conteudo" tabindex="-1"' in page.text
-    assert "?v=0.6" in page.text
+    assert "?v=0.2" in page.text
     assert "Chocolate da Casa" in page.text
     css = client.get("/static/style.css").text
     assert "#3D634D" in css and "#B45C3C" in css
