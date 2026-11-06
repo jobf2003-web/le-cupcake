@@ -1,9 +1,22 @@
-# Decisões técnicas e questões em aberto
+# Decisões técnicas — Le Cupcake 0.2
 
-- O projeto anterior definiu o produto como uma loja de cupcakes e apresentou 25 histórias, estimadas no backlog em **320 horas**. Outro trecho do mesmo PDF cita **332 horas**; a divergência deve ser revisada, não corrigida sem justificativa.
-- Para o sistema foi adotado **Python/FastAPI** no back-end. A mudança em relação ao planejamento inicial deve constar na documentação acadêmica final.
-- **Banco SQLite:** o esquema de 23 tabelas do planejamento foi preservado, acrescentando em `pedidos` as informações de telefone, endereço de entrega e token de consulta. Muitas tabelas representam funcionalidades futuras e permanecem sem uso no MVP.
-- O projeto usa fotografias reais de terceiros provenientes do Wikimedia Commons, com autor, fonte e licença em docs/Referencias_Fotograficas_Simplificadas.docx; são fotos ilustrativas de outros cupcakes, não dos produtos da loja fictícia.
-- Pagamentos são apenas registros de status `pendente`, sem captura de dados financeiros.
-- A aplicação está disponível para demonstração em **https://le-cupcake.onrender.com/** e o código está em **https://github.com/jobf2003-web/le-cupcake**. A hospedagem gratuita pode usar armazenamento efêmero; persistência permanente do banco de dados ainda não está assegurada. Os dois vídeos foram gravados, e seus links de compartilhamento serão acrescentados quando disponibilizados.
-- O documento acadêmico `Documentacao_ABNT.docx` deve permanecer alinhado com a versão 0.2, incluindo as funcionalidades e os 30 testes técnicos verificados.
+## Histórico da implementação
+A PIT I definiu 25 histórias de usuário. Na PIT II foi apresentada a versão inicial **0.1** no primeiro vídeo, seguida das cinco avaliações preservadas. Após a revisão dos requisitos originais, os Ciclos A, A.2, B, C, D, E e F deram origem à versão **0.2**, ainda não publicada. Atribuir cada mudança à revisão dos requisitos ou às avaliações apenas quando sustentado pelo registro.
+
+## Arquitetura e persistência
+- Python/FastAPI, HTML, CSS, JavaScript, templates Jinja2, SQLite e testes Pytest.
+- Organização por serviços incremental, sem declaração de MVC formal.
+- `schema.sql`: 23 tabelas-base; migrações 1–7: **27 tabelas, 173 colunas, 34 relações FK e 20 índices nomeados**.
+- O carrinho em uso é mantido em sessão assinada; as tabelas SQL projetadas para carrinhos não são sua persistência operacional.
+- Pedidos, cupons, produtos, combos e estoque possuem validações no servidor e operações transacionais.
+
+## Limitações
+- PIX e cartão são exclusivamente demonstrativos: não há gateway de pagamento ou transferência real.
+- Avisos de pedidos ocorrem dentro da aplicação; SMS/e-mail externos não estão homologados.
+- Recuperação de senha depende de SMTP e HTTPS configurados.
+- Taxa por CEP, horários e agendamento não equivalem a logística física contratada.
+- Status de pedidos é consultado a cada 15 segundos, e não via push instantâneo.
+- Persistência do SQLite no Render gratuito, desempenho sob carga e navegação mobile real não foram comprovados.
+
+## Qualidade, evidências e publicação
+O código do Ciclo E passou por **93 testes automatizados locais**; isso não prova todos os critérios de aceitação e requisitos não funcionais. Os documentos oficiais devem refletir os resultados locais, sem fingir homologação no Render. As cinco avaliações e o primeiro vídeo são registros da 0.1 e não devem ser alterados. A branch `pit-ii-25-historias-completas` é a fonte do desenvolvimento da 0.2; a `main` permanece preservada até aprovação e autorização expressa.

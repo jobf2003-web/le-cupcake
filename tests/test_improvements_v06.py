@@ -1,4 +1,4 @@
-"""Verificações dos ajustes de clareza e acessibilidade da interface v0.6."""
+"""Verificações dos ajustes de clareza e acessibilidade da interface documentada como v0.2."""
 import re
 import pytest
 from fastapi.testclient import TestClient

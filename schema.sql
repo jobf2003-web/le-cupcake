@@ -1,6 +1,8 @@
--- PIT II - Loja Virtual de Cupcakes | VERSAO PROPOSTA, NAO IMPLANTADA
--- Modelo físico inicial em SQLite (valores monetarios em centavos).
--- Não armazenar dados de cartões; pagamentos são registrados por referencias externas.
+-- LE CUPCAKE - PIT II | ESQUEMA-BASE DA VERSAO 0.2 CONSOLIDADA
+-- Este arquivo cria 23 tabelas iniciais. O banco fisico efetivo exige migrations.py,
+-- com PRAGMA user_version=7 e 27 tabelas, segundo a auditoria do Ciclo F.
+-- Valores monetarios em centavos. Pagamentos locais sao SOMENTE demonstrativos;
+-- nao ha gateway externo nem cobranca real. Nunca armazenar dados de cartao.
 PRAGMA foreign_keys = ON;
 CREATE TABLE usuarios (
  id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT NOT NULL, email TEXT NOT NULL UNIQUE,

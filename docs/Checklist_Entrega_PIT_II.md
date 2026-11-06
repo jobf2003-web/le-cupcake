@@ -1,27 +1,38 @@
-# Checklist antes de entregar à Cruzeiro do Sul
+# Checklist de homologação PIT II — versão 0.2 consolidada (pré-publicação)
 
-## Já existe neste pacote
+Este checklist acompanha a evolução da versão 0.1 para a versão 0.2, após as cinco avaliações e a revisão das 25 histórias da PIT I. Não é autorização para publicar a branch.
 
-- [x] Primeira implementação executável de loja web com catálogo, filtros, carrinho e pedidos.
-- [x] SQLite com produtos de exemplo e tabelas do planejamento.
-- [x] Administração protegida por login, cadastro de produtos e gestão de pedidos.
-- [x] Contas de clientes e histórico de pedidos, cupons, avaliações moderadas, relatórios e opções de entrega configuráveis.
-- [x] Documentação de apoio ABNT preliminar, diagramas e protótipos do planejamento.
-- [x] Testes técnicos de regressão (30 casos aprovados na versão 0.2).
-- [x] Manual do usuário, modelo de avaliação e mapeamento do escopo ainda pendente.
+## Evidências técnicas já verificadas localmente
+- [x] Trabalho original PIT I recuperado e 25 histórias registradas com critérios e limitações.
+- [x] Código evoluiu em branch isolada, sem alteração da `main`.
+- [x] Modelo do banco: 23 tabelas iniciais + migrações 1–7 = **27 tabelas, 173 campos, 34 FKs**.
+- [x] **93 testes automatizados** aprovados na cópia local do Ciclo E.
+- [x] Fluxos internos de frete, agendamento, combos, recuperação por token, avisos internos e pagamentos simulados testados localmente.
+- [x] Cinco avaliações históricas em PDF preservadas (orientação do tutor quanto ao uso informada pelo responsável).
+- [x] Ciclo F: documentação, modelo conceitual, UML, esquemas físicos, dicionário e relatório de contradições preparados.
 
-## Para completar os requisitos da PIT II
+## Limitações que devem constar nas entregas
+- [x] **US-12:** demonstração de pagamento, sem cobrança real.
+- [x] **US-25:** nenhum gateway externo integrado — não considerar atendida.
+- [x] **US-11/US-21:** notificações internas, não SMS/e-mail entregues.
+- [x] **US-07:** SMTP não configurado/entrega externa não comprovada.
+- [x] **US-06/US-19:** atualização por consulta de 15 s, sem push.
+- [x] **US-04/05/13/24:** entrega/CEP/agendamento interno demonstrativo, sem logística contratada.
+- [x] **US-15:** dados nutricionais reais não certificados; não inventar informações.
+- [x] **RNFs:** tempos de resposta e concorrência ainda não medidos.
 
-- [ ] Confirmar com o(a) tutor(a) se o MVP reduzido é aceitável ou se as 25 histórias precisam de implementação completa.
-- [ ] Concluir os recursos que forem necessários para o escopo autorizado.
-- [ ] Revisar o documento em ABNT para descrever o código efetivamente entregue; documentar escolhas, modelos revisados e resultados.
-- [ ] Publicar código e documentação no GitHub e registrar o link no `PIT_atividade.docx`.
-- [ ] Hospedar o sistema com acesso público seguro, armazenamento persistente e credenciais administrativas não compartilhadas; registrar URL.
-- [x] Gravar vídeo narrado da solução com pelo menos cinco minutos (duração informada: sete minutos); falta inserir o link na entrega.
-- [ ] Pedir a cinco colegas/profissionais que testem de fato, preenchendo nome, data, êxitos, falhas e não testados.
-- [x] Preparar o PDF das cinco fichas de avaliação de referência e realizar melhorias técnicas da versão 0.2. O documento indica tratar-se de registros simulados; confirmar a aceitação desse formato conforme orientação do curso.
-- [x] Preparar laudo com evidências técnicas e capturas locais; conferir seus anexos na submissão final.
-- [x] Gravar o segundo vídeo de apresentação das modificações, com limite de cinco minutos; falta inserir o link na entrega.
-- [ ] Preencher o `PIT_atividade.docx` oficial integralmente e conferir a orientação final de submissão no AVA.
+## Pendente antes de declarar a entrega final
+- [ ] Testar a interface em navegador desktop e mobile, incluindo erros, formulários e acessibilidade.
+- [ ] Verificar carga/latência conforme ambiente e critérios da PIT I, registrar metas não comprovadas.
+- [ ] Homologar a persistência SQLite no Render e não expor dados pessoais reais.
+- [ ] Conferir créditos/licenças das fotografias na página publicada.
+- [ ] Aprovar ou registrar com tutor as limitações incontornáveis do plano gratuito.
+- [ ] Garantir que o formulário oficial da branch tenha a mesma revisão encaminhada para a documentação da versão 0.2; substituir o relatório de atualização do sistema que ainda descreve 30 testes. Preservar as avaliações e o primeiro vídeo; inserir o link real do segundo vídeo e as evidências da publicação.
+- [ ] Publicar a versão 0.2 consolidada na `main` e no Render **somente após aprovação de teste**.
+- [ ] Gravar o segundo vídeo (até cinco minutos) demonstrando mudanças efetivas, mantendo o primeiro vídeo intacto.
+- [ ] Verificar os dois links de vídeo e a entrega exigida no AVA.
 
-Não preencha testes e feedbacks antes de ocorrerem. Para testes públicos, use **somente dados fictícios** enquanto não houver revisão formal de segurança/privacidade.
+## Instruções consultadas
+**Situação 1:** revisão de escopo, UML, IHC, modelos conceitual/lógico/físico e dicionário. **Situação 2:** front-end/back-end, Git, testes, manual e apresentação narrada ≥5 minutos. **Situação 3:** cinco avaliações com nome/data/êxitos/falhas/não testados em PDF, laudo, evidências, correções e vídeo de atualização ≤5 minutos.
+
+Não modificar retrospectivamente textos/datas dos avaliadores nem descrever a versão 0.2 como existente antes das avaliações e da revisão das 25 histórias.

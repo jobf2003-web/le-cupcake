@@ -1,3 +1,51 @@
 {% extends 'base.html' %}
 {% block title %}Relatórios{% endblock %}
-{% block content %}<div class="container inner-page admin-page"><a class="breadcrumb" href="/admin">← Painel</a><div class="page-header"><span class="eyebrow">RESULTADOS</span><h1>Relatório de pedidos</h1><p>Resumo dos pedidos registrados, excluindo os cancelados. Os valores representam pedidos, não pagamentos confirmados.</p></div><form class="filterbar" method="get" action="/admin/relatorios"><label for="mes">Filtrar por mês</label><input id="mes" name="mes" type="month" value="{{ mes }}"><button class="btn btn-dark">Filtrar</button><a class="btn btn-outline" href="/admin/relatorios">Todos</a></form><div class="stats-grid"><div class="stat"><span>Pedidos não cancelados</span><strong>{{ overview.pedidos }}</strong></div><div class="stat"><span>Valor dos pedidos</span><strong>{{ overview.receita|reais }}</strong></div><div class="stat"><span>Descontos aplicados</span><strong>{{ overview.descontos|reais }}</strong></div></div><h2>Produtos mais pedidos</h2><div class="responsive-table"><table><thead><tr><th>Cupcake</th><th>Unidades registradas</th></tr></thead><tbody>{% for p in top %}<tr><td>{{ p.nome }}</td><td>{{ p.unidades }}</td></tr>{% else %}<tr><td colspan="2">Ainda não há dados para o período.</td></tr>{% endfor %}</tbody></table></div><h2 class="report-section-title">Pedidos por situação (todos os períodos)</h2><div class="responsive-table"><table><thead><tr><th>Status</th><th>Quantidade</th></tr></thead><tbody>{% for s in by_status %}<tr><td>{{ s.status|status_nome }}</td><td>{{ s.quantidade }}</td></tr>{% else %}<tr><td colspan="2">Sem pedidos.</td></tr>{% endfor %}</tbody></table></div></div>{% endblock %}
+{% block content %}
+<div class="container inner-page admin-page">
+  <a class="breadcrumb" href="/admin">← Painel</a>
+  <div class="page-header"><span class="eyebrow">RESULTADOS</span><h1>Relatórios da loja</h1>
+    <p>Dados dos pedidos demonstrativos cadastrados. <strong>Não representam valores efetivamente recebidos.</strong></p></div>
+  <form class="filterbar report-filters" method="get" action="/admin/relatorios">
+    <label for="mes">Mês</label><input id="mes" name="mes" type="month" value="{{ mes }}">
+    <label for="categoria">Categoria</label><select id="categoria" name="categoria">
+      <option value="">Todas as categorias</option>
+      {% for cat in categories %}<option value="{{ cat.id }}" {% if categoria == (cat.id|string) %}selected{% endif %}>{{ cat.nome }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-dark" type="submit">Filtrar</button>
+    <a class="btn btn-outline" href="/admin/relatorios">Limpar filtros</a>
+  </form>
+  {% if selected_category %}<p class="tiny-note">Filtro por categoria: <strong>{{ selected_category.nome }}</strong>. O indicador financeiro abaixo soma apenas valores brutos dos itens dessa categoria. Não distribui descontos nem frete entre os produtos.</p>{% endif %}
+  <div class="stats-grid">
+    <div class="stat"><span>Pedidos não cancelados{% if selected_category %} com itens desta categoria{% endif %}</span><strong>{{ overview.pedidos }}</strong></div>
+    <div class="stat"><span>{{ total_label }}</span><strong>{{ overview.receita|reais }}</strong></div>
+    <div class="stat"><span>{% if selected_category %}Filtro aplicado{% else %}Descontos dos pedidos{% endif %}</span><strong>{% if selected_category %}Por categoria{% else %}{{ overview.descontos|reais }}{% endif %}</strong></div>
+  </div>
+  <div class="admin-section-head"><h2>Pedidos e produtos ao longo do tempo</h2>
+    <div class="report-toggle" role="group" aria-label="Indicador do gráfico">
+      <button type="button" id="report-show-units" class="btn btn-small btn-primary" aria-pressed="true">Unidades</button>
+      <button type="button" id="report-show-value" class="btn btn-small btn-outline" aria-pressed="false">Valor bruto dos itens</button>
+    </div>
+  </div>
+  <div class="report-bars" id="report-bars" aria-label="Gráfico interativo por mês">
+    {% for p in points %}
+    <div class="report-bar-row" data-units="{{ p.unidades }}" data-amount="{{ p.valor_centavos }}" data-max-units="{{ max_units }}" data-max-amount="{{ max_value }}">
+      <span class="report-bar-label">{{ p.periodo }}</span>
+      <div class="report-bar-track"><span class="report-bar-fill" style="width:{{ (p.unidades/max_units*100)|round|int if max_units else 0 }}%"></span></div>
+      <span class="report-bar-value">{{ p.unidades }} un.</span>
+    </div>
+    {% else %}<p>Nenhuma venda demonstrativa no período escolhido.</p>{% endfor %}
+  </div>
+  <h2>Produtos mais pedidos</h2>
+  <p class="tiny-note">O ranking inclui cupcakes avulsos e componentes dos combos. Pedidos cancelados são excluídos.</p>
+  <div class="responsive-table"><table><thead><tr><th>Produto</th><th>Unidades</th><th>Valor bruto dos itens</th></tr></thead><tbody>
+  {% for p in top %}<tr><td>{{ p.nome }}</td><td>{{ p.unidades }}</td><td>{{ p.valor_bruto_centavos|reais }}</td></tr>
+  {% else %}<tr><td colspan="3">Sem dados para os filtros escolhidos.</td></tr>{% endfor %}
+  </tbody></table></div>
+  <h2 class="report-section-title">Pedidos por situação (todos os períodos)</h2>
+  <div class="responsive-table"><table><thead><tr><th>Status</th><th>Quantidade</th></tr></thead><tbody>
+  {% for s in by_status %}<tr><td>{{ s.status|status_nome }}</td><td>{{ s.quantidade }}</td></tr>
+  {% else %}<tr><td colspan="2">Sem pedidos.</td></tr>{% endfor %}
+  </tbody></table></div>
+  <p class="tiny-note">Os gráficos e filtros descrevem atividades registradas em um protótipo, sem integração com recebimento financeiro real.</p>
+</div>
+{% endblock %}

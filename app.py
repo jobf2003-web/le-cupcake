@@ -6,10 +6,11 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import os
 from contextlib import contextmanager
 from decimal import Decimal, InvalidOperation
-from datetime import date
+from datetime import date, timedelta, datetime, timezone
 from pathlib import Path
 import re
 import secrets
@@ -17,6 +18,16 @@ import sqlite3
 from typing import Any
 
 from photo_sources import PHOTOS, PRODUCT_PHOTO_KEYS, ALLOWED_PHOTO_URLS
+from commerce_delivery import frete_por_regiao, validar_agenda, cep_normalizado
+from commerce_combos import build_bundle, sanitize_combos, COMBO_NOME, MIN_PECAS, MAX_PECAS, MAX_COMBOS
+from migrations import apply_migrations
+from order_notifications import (notify_new_order,notify_status_change,user_notifications,
+                                 mark_user_notifications_read,STATUS_LABELS)
+from sales_reporting import report_data
+from payment_demo import (PAYMENT_METHODS, DEMO_METHODS, payment_label,
+                          validate_payment_method, simulate_decision,
+                          restore_order_stock, log_payment_event)
+from customer_relationship import send_password_reset_email, make_reset_digest, get_recommendations, active_promotions, valid_dates
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -30,9 +41,9 @@ STATUS = ['recebido', 'confirmado', 'preparo', 'pronto', 'em_entrega', 'concluid
 NEXT_STATUS = {
     'recebido': ['confirmado', 'cancelado'],
     'confirmado': ['preparo', 'cancelado'],
-    'preparo': ['pronto', 'cancelado'],
-    'pronto': ['em_entrega', 'concluido', 'cancelado'],
-    'em_entrega': ['concluido', 'cancelado'],
+    'preparo': ['pronto'],
+    'pronto': ['em_entrega', 'concluido'],
+    'em_entrega': ['concluido'],
     'concluido': [], 'cancelado': [],
 }
 SAMPLE_PRODUCTS = [
@@ -116,6 +127,21 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
     templates.env.filters['reais'] = reais
     templates.env.filters['status_nome'] = lambda x: {'recebido':'Recebido', 'confirmado':'Confirmado', 'preparo':'Em preparo', 'pronto':'Pronto', 'em_entrega':'Em entrega', 'concluido':'Concluído', 'cancelado':'Cancelado'}.get(x, x)
     app.state.db_path = db_path
+    app.state.test_reset_links = [] if testing else None  # Somente testes; nunca renderizado em páginas.
+
+    campos_produto = ('nome', 'descricao', 'categoria_id', 'preco_centavos',
+                      'estoque', 'imagem_url', 'informacoes_nutricionais',
+                      'ativo', 'excluido_em', 'ingredientes')
+
+    def snapshot_produto(row):
+        return {chave: row[chave] for chave in campos_produto}
+
+    def auditar_produto(db, usuario_id, produto_id, acao, antes, depois):
+        dados = {'antes': antes, 'depois': depois}
+        db.execute('''INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao)
+                      VALUES (?,?,?,?,?)''',
+                   (usuario_id, 'cupcakes', produto_id, acao,
+                    json.dumps(dados, ensure_ascii=False, sort_keys=True)))
 
     @contextmanager
     def db_connect():
@@ -136,6 +162,7 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         with db_connect() as db:
             db.executescript((ROOT / 'schema.sql').read_text(encoding='utf-8')) if not db.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='usuarios'").fetchone() else None
+            apply_migrations(db)  # Opera tanto em banco novo quanto em banco legado.
             if not db.execute('SELECT 1 FROM categorias LIMIT 1').fetchone():
                 for category in ('Clássicos', 'Frutados', 'Especiais', 'Veganos'):
                     db.execute('INSERT INTO categorias (nome) VALUES (?)', (category,))
@@ -150,10 +177,16 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                 current_photo = db.execute('SELECT imagem_url FROM cupcakes WHERE nome = ?', (name,)).fetchone()
                 if current_photo and (not current_photo['imagem_url'] or not current_photo['imagem_url'].startswith('https://')):
                     db.execute('UPDATE cupcakes SET imagem_url=? WHERE nome=?', (PHOTOS[photo_key]['imagem_url'], name))
+            if not db.execute('SELECT 1 FROM combos WHERE nome=?', (COMBO_NOME,)).fetchone():
+                db.execute('INSERT INTO combos(nome,descricao,preco_centavos) VALUES (?,?,0)',
+                           (COMBO_NOME,'Combinação do cliente, preços calculados por componente'))
             if not db.execute('SELECT 1 FROM opcoes_entrega LIMIT 1').fetchone():
                 db.executemany('INSERT INTO opcoes_entrega(tipo,descricao,custo_base_centavos) VALUES (?,?,?)',
                                [('retirada', 'Retirar na loja', 0),
                                 ('entrega', 'Entrega local (taxa fixa)', 800)])
+            # Catálogo administrativo de alergênicos. Não associar automaticamente a receitas desconhecidas.
+            for allergen in ('Leite', 'Ovos', 'Trigo (glúten)', 'Soja', 'Amendoim', 'Castanhas'):
+                db.execute('INSERT OR IGNORE INTO alergenos(nome) VALUES (?)', (allergen,))
             # Uma avaliação por cliente/produto, inclusive após migrar uma instalação anterior.
             db.execute('CREATE UNIQUE INDEX IF NOT EXISTS ux_avaliacoes_cliente_produto ON avaliacoes(usuario_id,cupcake_id)')
             # Atualiza apenas descrições antigas incluídas pela versão anterior.
@@ -205,6 +238,17 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
     def save_cart(request: Request, cart: dict[int, int]):
         request.session['cart'] = {str(k): v for k, v in cart.items()}
 
+    def read_combos(request: Request) -> list[dict[int,int]]:
+        return sanitize_combos(request.session.get('custom_combos', []))
+
+    def save_combos(request: Request, combos: list[dict[int,int]]):
+        request.session['custom_combos'] = [{str(k):v for k,v in item.items()} for item in combos]
+
+    def bundle_cart(db: sqlite3.Connection, request: Request):
+        lines, subtotal = cart_lines(db, read_cart(request))
+        combos, combo_total, allocations, all_available = build_bundle(db, read_cart(request), read_combos(request))
+        return lines, combos, subtotal+combo_total, allocations, all_available
+
     def cart_lines(db: sqlite3.Connection, cart: dict[int, int]):
         if not cart:
             return [], 0
@@ -228,8 +272,13 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         if not isinstance(user_id, int):
             return None
         with db_connect() as db:
-            return db.execute("SELECT id,nome,email,criado_em FROM usuarios WHERE id=? AND papel='cliente' AND ativo=1",
+            user = db.execute("SELECT id,nome,email,criado_em,sessao_versao FROM usuarios WHERE id=? AND papel='cliente' AND ativo=1",
                               (user_id,)).fetchone()
+            if user and int(request.session.get('customer_auth_version', 0)) != int(user['sessao_versao']):
+                request.session.pop('customer_id', None)
+                request.session.pop('customer_auth_version', None)
+                return None
+            return user
 
     def require_customer(request: Request):
         user = current_customer(request)
@@ -259,7 +308,8 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
 
     def page(request: Request, filename: str, *, status_code: int = 200, **context):
         message = request.session.pop('flash', None)
-        context.update(photos=PHOTOS, cart_count=sum(read_cart(request).values()), csrf=csrf(request),
+        context.update(photos=PHOTOS, cart_count=sum(read_cart(request).values())+
+                       sum(sum(c.values()) for c in read_combos(request)), csrf=csrf(request),
                        flash=message, admin=bool(request.session.get('admin_id')),
                        path=request.url.path, customer=current_customer(request))
         return templates.TemplateResponse(request, filename, context, status_code=status_code)
@@ -283,24 +333,47 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                     message=str(exc.detail))
 
 
-    @app.get('/', response_class=HTMLResponse)
-    def home(request: Request, busca: str = '', categoria: str = ''):
+    def select_catalog(busca: str = '', categoria: str = ''):
+        """Mesma consulta para a vitrine HTML e os resultados sem recarga."""
         search = busca.strip()[:80]
+        category = categoria.strip()[:80]
         params: list[Any] = []
         sql = '''SELECT c.*, k.nome categoria FROM cupcakes c JOIN categorias k ON k.id=c.categoria_id
                  WHERE c.ativo=1 AND k.ativa=1'''
         if search:
             sql += ' AND (LOWER(c.nome) LIKE ? OR LOWER(c.descricao) LIKE ?)'
             params += [f'%{search.lower()}%', f'%{search.lower()}%']
-        if categoria:
+        if category:
             sql += ' AND k.nome=?'
-            params.append(categoria)
+            params.append(category)
+        # A vitrine geral sinaliza esgotados, mas filtros exibem apenas disponíveis.
+        if search or category:
+            sql += ' AND c.estoque > 0'
         sql += ' ORDER BY c.id'
         with db_connect() as db:
             products = db.execute(sql, params).fetchall()
+        return products, search, category
+
+    @app.get('/', response_class=HTMLResponse)
+    def home(request: Request, busca: str = '', categoria: str = ''):
+        products, search, category = select_catalog(busca, categoria)
+        with db_connect() as db:
             categories = db.execute('SELECT nome FROM categorias WHERE ativa=1 ORDER BY id').fetchall()
+            customer = current_customer(request)
+            recommendations = get_recommendations(db, customer['id']) if customer else []
+            promotions = active_promotions(db)
         return page(request, 'index.html', products=products, categories=categories,
-                    busca=search, categoria=categoria)
+                    busca=search, categoria=category, recommendations=recommendations,
+                    promotions=promotions, recommendations_personalized=bool(customer))
+
+    @app.get('/catalogo/resultados', response_class=HTMLResponse)
+    def catalog_partial(request: Request, busca: str = '', categoria: str = ''):
+        """Fragmento HTML escapado pelo Jinja2 para atualização progressiva do catálogo."""
+        products, _, _ = select_catalog(busca, categoria)
+        return templates.TemplateResponse(
+            request, 'catalogo_resultados.html', {'products': products, 'csrf': csrf(request)},
+            headers={'X-Total-Results': str(len(products)), 'Cache-Control': 'no-store'},
+        )
 
     @app.get('/produto/{product_id}', response_class=HTMLResponse)
     def product_detail(request: Request, product_id: int):
@@ -314,13 +387,16 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             recommendations = db.execute('''SELECT id,nome,imagem_url,preco_centavos FROM cupcakes
                     WHERE categoria_id=? AND id<>? AND ativo=1 AND estoque>0 ORDER BY id LIMIT 3''',
                     (p['categoria_id'], product_id)).fetchall()
+            allergens = db.execute('''SELECT a.nome FROM alergenos a
+                    JOIN cupcake_alergenos ca ON ca.alergeno_id=a.id
+                    WHERE ca.cupcake_id=? ORDER BY a.nome''', (product_id,)).fetchall()
             already_reviewed = False
             customer = current_customer(request)
             if customer:
                 already_reviewed = bool(db.execute('SELECT 1 FROM avaliacoes WHERE usuario_id=? AND cupcake_id=?',
                                                  (customer['id'], product_id)).fetchone())
         return page(request, 'produto.html', product=p, reviews=reviews,
-                    recommendations=recommendations, already_reviewed=already_reviewed)
+                    recommendations=recommendations, already_reviewed=already_reviewed, allergens=allergens)
 
     @app.post('/carrinho/adicionar')
     async def add_cart(request: Request):
@@ -345,11 +421,63 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         flash(request, f'{p["nome"]} adicionado ao carrinho.', 'sucesso')
         return redirect('/carrinho')
 
+    @app.get('/combos', response_class=HTMLResponse)
+    def combo_builder(request: Request):
+        with db_connect() as db:
+            products = db.execute('''SELECT id,nome,preco_centavos,estoque FROM cupcakes
+                WHERE ativo=1 AND excluido_em IS NULL AND estoque>0 ORDER BY id''').fetchall()
+        return page(request,'combos.html',products=products,min_pieces=MIN_PECAS,max_pieces=MAX_PECAS)
+
+    @app.post('/combos/adicionar')
+    async def add_combo(request: Request):
+        form=await valid_form(request)
+        raw={}
+        for k,v in form.multi_items():
+            if not k.startswith('q_'):
+                continue
+            try:
+                product_id, qty=int(k[2:]),int(v)
+            except (TypeError,ValueError):
+                raise HTTPException(422,'Quantidade inválida para combo.')
+            if qty<0 or qty>MAX_PECAS:
+                raise HTTPException(422,'Quantidade de combo fora do limite.')
+            if qty:
+                raw[str(product_id)] = qty
+        combination=sanitize_combos([raw])
+        if not combination:
+            raise HTTPException(422,f'Monte um combo com {MIN_PECAS} a {MAX_PECAS} cupcakes.')
+        combos=read_combos(request)
+        if len(combos)>=MAX_COMBOS:
+            raise HTTPException(422,'Limite de combos do carrinho atingido.')
+        combos.append(combination[0])
+        with db_connect() as db:
+            _,_,_,available=build_bundle(db,read_cart(request),combos)
+            if not available:
+                raise HTTPException(422,'Estoque insuficiente para a composição do combo.')
+        save_combos(request,combos)
+        flash(request,'Combo personalizado adicionado ao carrinho.','sucesso')
+        return redirect('/carrinho')
+
+    @app.post('/combos/remover')
+    async def remove_combo(request: Request):
+        form=await valid_form(request)
+        try:
+            index=int(form.get('indice','-1'))
+        except (TypeError,ValueError):
+            raise HTTPException(422,'Combo inválido.')
+        combos=read_combos(request)
+        if index<0 or index>=len(combos):
+            raise HTTPException(422,'Combo não encontrado no carrinho.')
+        combos.pop(index)
+        save_combos(request,combos)
+        return redirect('/carrinho')
+
     @app.get('/carrinho', response_class=HTMLResponse)
     def shopping_cart(request: Request):
         with db_connect() as db:
-            lines, subtotal = cart_lines(db, read_cart(request))
-        return page(request, 'carrinho.html', lines=lines, subtotal=subtotal)
+            lines, combos, subtotal, allocations, all_available = bundle_cart(db,request)
+        return page(request, 'carrinho.html', lines=lines, combos=combos,
+                    subtotal=subtotal, all_available=all_available)
 
     @app.post('/carrinho/atualizar')
     async def update_cart(request: Request):
@@ -387,17 +515,35 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         flash(request, 'Item removido.', 'info')
         return redirect('/carrinho')
 
+    @app.get('/api/frete')
+    def shipping_quote(opcao_entrega: int, cep: str = ''):
+        with db_connect() as db:
+            option = db.execute('SELECT * FROM opcoes_entrega WHERE id=? AND ativa=1', (opcao_entrega,)).fetchone()
+            if not option:
+                raise HTTPException(422, 'Modalidade de recebimento indisponível.')
+            try:
+                fee, region_id = frete_por_regiao(db, option, cep)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
+        return {'frete_centavos':fee, 'regiao_id':region_id,
+                'demonstrativo':True, 'descricao':'Taxa local configurada; não é cotação de transportadora.'}
+
     @app.get('/checkout', response_class=HTMLResponse)
     def checkout_form(request: Request):
         with db_connect() as db:
-            lines, subtotal = cart_lines(db, read_cart(request))
+            lines, combo_lines, subtotal, allocations, all_available = bundle_cart(db,request)
             shipping = db.execute('SELECT * FROM opcoes_entrega WHERE ativa=1 ORDER BY custo_base_centavos').fetchall()
-        if not lines:
-            flash(request, 'Adicione cupcakes ao carrinho antes de finalizar.', 'erro')
+            windows = db.execute('''SELECT j.*,o.tipo FROM janelas_entrega j JOIN opcoes_entrega o
+                          ON o.id=j.opcao_entrega_id WHERE o.ativa=1 ORDER BY j.inicio''').fetchall()
+            region_count = db.execute('SELECT COUNT(*) FROM regioes_entrega WHERE ativa=1').fetchone()[0]
+        if not lines and not combo_lines:
+            flash(request, 'Adicione cupcakes ou combos ao carrinho antes de finalizar.', 'erro')
             return redirect('/carrinho')
         user = current_customer(request)
-        return page(request, 'checkout.html', lines=lines, subtotal=subtotal, shipping=shipping,
-                    values={'nome':user['nome'],'email':user['email']} if user else {}, errors=[])
+        return page(request, 'checkout.html', lines=lines, combos=combo_lines, subtotal=subtotal, shipping=shipping,
+                    windows=windows, region_count=region_count,
+                    values={'nome':user['nome'],'email':user['email']} if user else {}, errors=[],
+                    payment_methods=PAYMENT_METHODS)
 
     @app.post('/checkout')
     async def place_order(request: Request):
@@ -408,11 +554,22 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         phone = str(form.get('telefone', '')).strip()[:30]
         address = str(form.get('endereco', '')).strip()[:400]
         coupon_code = str(form.get('cupom', '')).strip().upper()[:30]
+        payment_method = str(form.get('metodo_pagamento', 'a_combinar')).strip()[:40]
+        cep = str(form.get('cep', '')).strip()[:12]
+        scheduled_for = str(form.get('data_agendada', '')).strip()[:30]
+        try:
+            window_id = int(form.get('janela_entrega', '0') or '0')
+        except (ValueError, TypeError):
+            window_id = 0
         try:
             shipping_id = int(form.get('opcao_entrega', '0'))
         except (ValueError, TypeError):
             shipping_id = 0
         errors = []
+        try:
+            validate_payment_method(payment_method)
+        except ValueError as exc:
+            errors.append(str(exc))
         if len(name) < 3:
             errors.append('Informe seu nome completo.')
         if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email):
@@ -420,10 +577,21 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         if len(re.sub(r'\D', '', phone)) < 10:
             errors.append('Informe um telefone com DDD.')
         with db_connect() as db:
-            lines, subtotal = cart_lines(db, cart)
+            lines, combo_lines, subtotal, allocations, all_available = bundle_cart(db,request)
             shipping = db.execute('SELECT * FROM opcoes_entrega WHERE ativa=1 ORDER BY custo_base_centavos').fetchall()
+            windows = db.execute('''SELECT j.*,o.tipo FROM janelas_entrega j JOIN opcoes_entrega o
+                          ON o.id=j.opcao_entrega_id WHERE o.ativa=1 ORDER BY j.inicio''').fetchall()
+            region_count = db.execute('SELECT COUNT(*) FROM regioes_entrega WHERE ativa=1').fetchone()[0]
             ship = db.execute('SELECT * FROM opcoes_entrega WHERE id=? AND ativa=1', (shipping_id,)).fetchone()
-        if not lines:
+            if ship:
+                try:
+                    if ship['tipo']=='entrega' and cep:
+                        cep_normalizado(cep)
+                    frete_por_regiao(db, ship, cep)
+                    validar_agenda(db, shipping_id, scheduled_for, window_id)
+                except ValueError as exc:
+                    errors.append(str(exc))
+        if not lines and not combo_lines:
             errors.append('O carrinho está vazio.')
         if not ship:
             errors.append('Escolha uma modalidade de entrega.')
@@ -434,40 +602,38 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                 discount_for(db, coupon_code, subtotal)
         except ValueError as exc:
             errors.append(str(exc))
-        if any(not x['available'] for x in lines):
-            errors.append('Há itens indisponíveis ou sem estoque suficiente no carrinho.')
+        if any(not x['available'] for x in lines) or not all_available:
+            errors.append('Há itens indisponíveis ou sem estoque suficiente no carrinho e combos.')
         if errors:
-            return page(request, 'checkout.html', status_code=422, lines=lines,
-                        subtotal=subtotal, shipping=shipping, values=dict(form), errors=errors)
+            return page(request, 'checkout.html', status_code=422, lines=lines, combos=combo_lines,
+                        subtotal=subtotal, shipping=shipping, windows=windows, region_count=region_count,
+                        values=dict(form), errors=errors, payment_methods=PAYMENT_METHODS)
         token = secrets.token_urlsafe(24)
         try:
             with db_connect() as db:
                 db.execute('BEGIN IMMEDIATE')
-                for line in lines:
-                    p = line['product']
-                    actual = db.execute('''SELECT id, nome, estoque, preco_centavos FROM cupcakes
-                                           WHERE id=? AND ativo=1''', (p['id'],)).fetchone()
-                    if not actual or actual['estoque'] < line['qty']:
-                        raise ValueError('Um dos produtos acabou de ficar indisponível. Volte ao carrinho.')
-                subtotal_real = 0
-                for line in lines:
-                    p = db.execute('SELECT preco_centavos FROM cupcakes WHERE id=?', (line['product']['id'],)).fetchone()
-                    subtotal_real += p['preco_centavos'] * line['qty']
+                lines_now, combos_now, subtotal_real, allocations, all_available = bundle_cart(db,request)
+                if not all_available or any(not line['available'] for line in lines_now):
+                    raise ValueError('Estoque insuficiente para os itens e combos. Volte ao carrinho.')
                 ship_now = db.execute('SELECT * FROM opcoes_entrega WHERE id=? AND ativa=1', (shipping_id,)).fetchone()
                 if ship_now is None:
                     raise ValueError('A forma de entrega não está mais disponível.')
-                freight = int(ship_now['custo_base_centavos'])
+                freight, region_id = frete_por_regiao(db, ship_now, cep)
+                date_selected, window_selected = validar_agenda(db, shipping_id, scheduled_for, window_id)
                 coupon, discount = discount_for(db, coupon_code, subtotal_real)
                 total = subtotal_real + freight - discount
                 logged = current_customer(request)
                 cur = db.execute('''INSERT INTO pedidos(usuario_id,opcao_entrega_id, contato_nome,contato_email,contato_telefone,
-                    endereco_entrega,token_acesso,subtotal_centavos,frete_centavos,desconto_centavos,total_centavos)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?)''', (logged['id'] if logged else None, shipping_id, name, email, phone,
-                    address if ship_now['tipo']=='entrega' else None, token, subtotal_real, freight, discount, total))
+                    endereco_entrega,token_acesso,subtotal_centavos,frete_centavos,desconto_centavos,total_centavos,
+                    cep_entrega,regiao_entrega_id,agendado_para,janela_entrega_id)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', (logged['id'] if logged else None, shipping_id, name, email, phone,
+                    address if ship_now['tipo']=='entrega' else None, token, subtotal_real, freight, discount, total,
+                    cep_normalizado(cep) if ship_now['tipo']=='entrega' and cep.strip() else None,
+                    region_id, date_selected, window_selected))
                 order_id = cur.lastrowid
                 if coupon:
                     db.execute('INSERT INTO cupom_utilizacoes(cupom_id,pedido_id) VALUES (?,?)', (coupon['id'], order_id))
-                for line in lines:
+                for line in lines_now:
                     p = db.execute('SELECT id,nome,preco_centavos FROM cupcakes WHERE id=?', (line['product']['id'],)).fetchone()
                     changed = db.execute('UPDATE cupcakes SET estoque=estoque-? WHERE id=? AND estoque>=?',
                                          (line['qty'], p['id'], line['qty']))
@@ -477,14 +643,36 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                         VALUES (?,?,?,?,?)''', (order_id, p['id'], p['nome'], line['qty'], p['preco_centavos']))
                     db.execute('INSERT INTO estoque_movimentos(cupcake_id,pedido_id,variacao,motivo) VALUES (?,?,?,?)',
                                (p['id'], order_id, -line['qty'], 'Pedido recebido'))
+                if combos_now:
+                    default_combo=db.execute('SELECT id FROM combos WHERE nome=?',(COMBO_NOME,)).fetchone()
+                    if default_combo is None:
+                        raise ValueError('Configuração de combos não encontrada.')
+                    for combo in combos_now:
+                        itemcur=db.execute('''INSERT INTO pedido_itens(pedido_id,combo_id,nome_snapshot,quantidade,preco_unitario_centavos)
+                            VALUES (?,?,?,?,?)''',(order_id,default_combo['id'],COMBO_NOME,1,combo['total']))
+                        for part in combo['parts']:
+                            changed=db.execute('UPDATE cupcakes SET estoque=estoque-? WHERE id=? AND estoque>=? AND ativo=1',
+                                         (part['qty'],part['id'],part['qty']))
+                            if changed.rowcount != 1:
+                                raise ValueError('Estoque insuficiente para o combo. Revise o carrinho.')
+                            db.execute('''INSERT INTO pedido_combo_componentes(pedido_item_id,cupcake_id,quantidade,nome_snapshot,preco_unitario_centavos)
+                                VALUES (?,?,?,?,?)''',(itemcur.lastrowid,part['id'],part['qty'],part['nome'],part['price']))
+                            db.execute('''INSERT INTO estoque_movimentos(cupcake_id,pedido_id,variacao,motivo)
+                                VALUES (?,?,?,?)''',(part['id'],order_id,-part['qty'],'Combo personalizado no pedido'))
                 db.execute('INSERT INTO eventos_pedido(pedido_id,status,observacao) VALUES (?, ?, ?)',
                            (order_id, 'recebido', 'Pedido registrado pelo site'))
                 db.execute('''INSERT INTO pagamentos(pedido_id,metodo,provedor,status,valor_centavos)
-                              VALUES (?, ?, ?, ?, ?)''', (order_id, 'a_combinar', 'demonstracao', 'pendente', total))
+                              VALUES (?, ?, ?, ?, ?)''',
+                           (order_id, payment_method,
+                            'simulador_local' if payment_method in DEMO_METHODS else 'pagamento_posterior',
+                            'pendente', total))
+                # Avisos internos transacionais; não envia SMS ou e-mail externo.
+                notify_new_order(db, order_id, logged['id'] if logged else None)
         except ValueError as exc:
             flash(request, str(exc), 'erro')
             return redirect('/carrinho')
         save_cart(request, {})
+        save_combos(request, [])
         return redirect(f'/pedido/{token}')
 
     @app.get('/pedido/{token}', response_class=HTMLResponse)
@@ -497,8 +685,71 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                                (token,)).fetchone()
             if not order:
                 raise HTTPException(404, 'Pedido não encontrado.')
+            payment = db.execute('''SELECT * FROM pagamentos WHERE pedido_id=? ORDER BY id DESC LIMIT 1''',
+                                 (order['id'],)).fetchone()
             items = db.execute('SELECT * FROM pedido_itens WHERE pedido_id=?', (order['id'],)).fetchall()
-        return page(request, 'pedido.html', order=order, items=items)
+            slot = db.execute('SELECT inicio,fim FROM janelas_entrega WHERE id=?', (order['janela_entrega_id'],)).fetchone() if order['janela_entrega_id'] else None
+            components = db.execute('''SELECT pc.pedido_item_id,pc.nome_snapshot,pc.quantidade FROM pedido_combo_componentes pc
+                        JOIN pedido_itens i ON i.id=pc.pedido_item_id WHERE i.pedido_id=?''', (order['id'],)).fetchall()
+            components_by_line = {}
+            for comp in components:
+                components_by_line.setdefault(comp['pedido_item_id'], []).append(comp)
+        return page(request, 'pedido.html', order=order, items=items, slot=slot,
+                    payment=payment, payment_label=payment_label,
+                    components_by_line=components_by_line, demo_methods=DEMO_METHODS)
+
+    @app.post('/pedido/{token}/simular-pagamento')
+    async def simulate_payment_request(request: Request, token: str):
+        # Token secreto do pedido + CSRF. A ação NÃO envolve dinheiro ou gateway.
+        await valid_form(request)
+        if not re.fullmatch(r'[A-Za-z0-9_-]{10,100}', token):
+            raise HTTPException(404, 'Pedido não encontrado.')
+        form = await request.form()
+        decision = str(form.get('decisao','')).strip()
+        with db_connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            order = db.execute('SELECT id,usuario_id FROM pedidos WHERE token_acesso=?', (token,)).fetchone()
+            if not order:
+                raise HTTPException(404, 'Pedido não encontrado.')
+            try:
+                status, changed = simulate_decision(db, order_id=order['id'], decision=decision)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
+            if changed:
+                if status == 'recusado':
+                    notify_status_change(db, order['id'], order['usuario_id'], 'cancelado')
+                db.execute('''INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao)
+                              VALUES (NULL,'pagamentos',?,'simulacao',?)''',
+                           (order['id'], f'{decision}: sem cobrança real'))
+        flash(request, ('Aprovação simulada registrada — nenhuma cobrança realizada.' if status == 'aprovado'
+                        else 'Recusa simulada: pedido cancelado e estoque devolvido.'), 'info')
+        return redirect('/pedido/'+token)
+
+    @app.get('/api/pedido/{token}/status')
+    def order_status_api(token: str):
+        # O token de alta entropia funciona como credencial da página de pedido.
+        # A API expõe somente status, ETA e eventos, nunca dados pessoais.
+        if not re.fullmatch(r'[A-Za-z0-9_-]{10,100}', token):
+            raise HTTPException(404, 'Pedido não encontrado.')
+        with db_connect() as db:
+            order = db.execute('SELECT id,status,previsao_entrega_em,agendado_para FROM pedidos WHERE token_acesso=?',
+                               (token,)).fetchone()
+            if not order:
+                raise HTTPException(404, 'Pedido não encontrado.')
+            payment = db.execute('''SELECT metodo,status,provedor FROM pagamentos WHERE pedido_id=?
+                                     ORDER BY id DESC LIMIT 1''', (order['id'],)).fetchone()
+            events = db.execute('''SELECT status,ocorrido_em FROM eventos_pedido
+                         WHERE pedido_id=? ORDER BY id DESC LIMIT 12''', (order['id'],)).fetchall()
+        from fastapi.responses import JSONResponse
+        return JSONResponse({'status':order['status'],
+                             'status_nome': STATUS_LABELS[order['status']],
+                             'previsao_entrega_em':order['previsao_entrega_em'],
+                             'agendado_para':order['agendado_para'],
+                             'eventos':[{'status':r['status'],'data':r['ocorrido_em']} for r in events],
+                             'pagamento': {'tipo':payment['metodo'], 'status':payment['status'],
+                                           'demonstrativo':payment['provedor']=='simulador_local'} if payment else None,
+                             'atualizacao':'consulta periódica de status (não é push)'},
+                            headers={'Cache-Control':'no-store'})
 
     @app.get('/conta/cadastrar', response_class=HTMLResponse)
     def register_form(request: Request):
@@ -524,6 +775,7 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         request.session.clear()
         save_cart(request, saved_cart)
         request.session['customer_id'] = cid
+        request.session['customer_auth_version'] = 0
         flash(request, 'Sua conta foi criada com sucesso.', 'sucesso')
         return redirect('/minha-conta')
 
@@ -544,13 +796,100 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         request.session.clear()
         save_cart(request, cart)
         request.session['customer_id'] = user['id']
+        request.session['customer_auth_version'] = int(user['sessao_versao'])
         flash(request, 'Bem-vindo de volta!', 'sucesso')
         return redirect('/minha-conta')
+
+    @app.get('/conta/recuperar', response_class=HTMLResponse)
+    def password_recovery_form(request: Request):
+        return page(request, 'conta_recuperar.html', error=None, sent=False,
+                    enabled=bool(testing or send_password_reset_email.configured()))
+
+    @app.post('/conta/recuperar')
+    async def password_recovery(request: Request):
+        form = await valid_form(request)
+        email = str(form.get('email', '')).strip().lower()[:200]
+        enabled = bool(testing or send_password_reset_email.configured())
+        if not enabled:
+            return page(request, 'conta_recuperar.html', status_code=503,
+                        error='O envio de e-mail não está configurado neste ambiente de demonstração.',
+                        sent=False, enabled=False)
+        # Resposta idêntica para endereços existentes e desconhecidos.
+        with db_connect() as db:
+            user = db.execute("SELECT id,email FROM usuarios WHERE email=? AND papel='cliente' AND ativo=1", (email,)).fetchone()
+            if user:
+                since = datetime.now(timezone.utc) - timedelta(minutes=15)
+                recent = db.execute('''SELECT COUNT(*) FROM password_reset_tokens
+                    WHERE usuario_id=? AND criado_em>=?''', (user['id'], since.isoformat())).fetchone()[0]
+                if recent < 3:
+                    token = secrets.token_urlsafe(32)
+                    now = datetime.now(timezone.utc)
+                    db.execute('''INSERT INTO password_reset_tokens(usuario_id,token_digest,expiracao_em,criado_em)
+                        VALUES (?,?,?,?)''', (user['id'],make_reset_digest(token),
+                                            (now+timedelta(minutes=30)).isoformat(),now.isoformat()))
+                    if testing:
+                        app.state.test_reset_links.append(f'http://testserver/conta/redefinir/{token}')
+                    else:
+                        try:
+                            sent = send_password_reset_email(user['email'], token)
+                        except Exception:
+                            # Não expor detalhes de SMTP ou dados de conta no HTML.
+                            sent = False
+                        if not sent:
+                            db.execute('UPDATE password_reset_tokens SET usado_em=? WHERE token_digest=?',
+                                       (now.isoformat(),make_reset_digest(token)))
+        return page(request, 'conta_recuperar.html', sent=True, enabled=enabled, error=None)
+
+    def reset_token_user(db, token: str):
+        if not re.fullmatch(r'[A-Za-z0-9_-]{32,128}', token):
+            return None
+        return db.execute('''SELECT t.id,t.usuario_id FROM password_reset_tokens t
+                JOIN usuarios u ON u.id=t.usuario_id
+                WHERE t.token_digest=? AND t.usado_em IS NULL AND t.expiracao_em>?
+                AND u.ativo=1 AND u.papel='cliente' ''',
+                (make_reset_digest(token), datetime.now(timezone.utc).isoformat())).fetchone()
+
+    @app.get('/conta/redefinir/{token}', response_class=HTMLResponse)
+    def password_reset_form(request: Request, token: str):
+        with db_connect() as db:
+            valid = bool(reset_token_user(db, token))
+        response = page(request, 'conta_redefinir.html', token=token if valid else '', valid=valid,
+                        error=None)
+        response.headers['Cache-Control'] = 'no-store'
+        response.headers['Referrer-Policy'] = 'no-referrer'
+        return response
+
+    @app.post('/conta/redefinir/{token}')
+    async def password_reset(request: Request, token: str):
+        form = await valid_form(request)
+        password = str(form.get('senha', ''))
+        confirmation = str(form.get('confirmar', ''))
+        if not (12 <= len(password) <= 128) or password != confirmation:
+            return page(request, 'conta_redefinir.html', status_code=422, token=token,
+                        valid=True, error='Informe duas senhas idênticas de 12 a 128 caracteres.')
+        with db_connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            record = reset_token_user(db, token)
+            if not record:
+                return page(request, 'conta_redefinir.html', status_code=422,
+                            token='', valid=False, error='Link inválido, expirado ou já utilizado.')
+            now = datetime.now(timezone.utc).isoformat()
+            db.execute('UPDATE usuarios SET senha_hash=?,sessao_versao=sessao_versao+1 WHERE id=?',
+                       (hash_password(password), record['usuario_id']))
+            db.execute('''UPDATE password_reset_tokens SET usado_em=?
+                WHERE usuario_id=? AND usado_em IS NULL''', (now,record['usuario_id']))
+            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'usuarios',?,'redefinir senha')",
+                       (record['usuario_id'], record['usuario_id']))
+        request.session.pop('customer_id', None)
+        request.session.pop('customer_auth_version', None)
+        flash(request, 'Senha redefinida. Entre novamente.', 'sucesso')
+        return redirect('/conta/entrar')
 
     @app.post('/conta/sair')
     async def customer_logout(request: Request):
         await valid_form(request)
         request.session.pop('customer_id', None)
+        request.session.pop('customer_auth_version', None)
         flash(request, 'Você saiu da sua conta.', 'info')
         return redirect('/')
 
@@ -561,7 +900,16 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             orders = db.execute('''SELECT p.*,o.descricao entrega FROM pedidos p
                 JOIN opcoes_entrega o ON o.id=p.opcao_entrega_id
                 WHERE p.usuario_id=? ORDER BY p.id DESC LIMIT 100''', (user['id'],)).fetchall()
-        return page(request, 'minha_conta.html', orders=orders, user=user)
+            alerts = user_notifications(db, user['id'])
+        return page(request, 'minha_conta.html', orders=orders, user=user, alerts=alerts)
+
+    @app.post('/minha-conta/notificacoes/ler')
+    async def customer_read_notifications(request: Request):
+        user = require_customer(request)
+        await valid_form(request)
+        with db_connect() as db:
+            mark_user_notifications_read(db, user['id'])
+        return redirect('/minha-conta')
 
     @app.post('/produto/{product_id}/avaliar')
     async def create_review(request: Request, product_id: int):
@@ -613,32 +961,44 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
 
     @app.get('/admin', response_class=HTMLResponse)
     def admin_home(request: Request):
-        admin_id(request)
+        admin_user=admin_id(request)
         with db_connect() as db:
             stats = {'pedidos': db.execute('SELECT COUNT(*) FROM pedidos').fetchone()[0],
                      'produtos': db.execute('SELECT COUNT(*) FROM cupcakes WHERE ativo=1').fetchone()[0],
                      'pendentes': db.execute("SELECT COUNT(*) FROM pedidos WHERE status IN ('recebido','confirmado','preparo')").fetchone()[0]}
             products = db.execute('''SELECT c.*,k.nome categoria FROM cupcakes c JOIN categorias k ON k.id=c.categoria_id
-                                      ORDER BY c.ativo DESC,c.id''').fetchall()
+                                      WHERE c.excluido_em IS NULL ORDER BY c.ativo DESC,c.id''').fetchall()
+            archived = db.execute('''SELECT id,nome,excluido_em FROM cupcakes WHERE excluido_em IS NOT NULL
+                                     ORDER BY excluido_em DESC, id DESC LIMIT 100''').fetchall()
             orders = db.execute('SELECT * FROM pedidos ORDER BY id DESC LIMIT 6').fetchall()
-        return page(request, 'admin.html', stats=stats, products=products, orders=orders)
+            stats['avisos'] = db.execute('''SELECT COUNT(*) FROM notificacoes WHERE usuario_id=?
+                              AND canal='app' AND status='pendente' ''',(admin_user,)).fetchone()[0]
+        return page(request, 'admin.html', stats=stats, products=products, orders=orders, archived=archived)
 
     @app.get('/admin/produtos/novo', response_class=HTMLResponse)
     def new_product(request: Request):
         admin_id(request)
         with db_connect() as db:
             categories = db.execute('SELECT * FROM categorias ORDER BY id').fetchall()
-        return page(request, 'admin_produto.html', product=None, categories=categories, error=None)
+        with db_connect() as db:
+            allergens = db.execute('SELECT * FROM alergenos ORDER BY nome').fetchall()
+        return page(request, 'admin_produto.html', product=None, categories=categories,
+                    allergens=allergens, selected_allergens=[], error=None)
 
     @app.get('/admin/produtos/{product_id}/editar', response_class=HTMLResponse)
     def edit_product(request: Request, product_id: int):
         admin_id(request)
         with db_connect() as db:
-            product = db.execute('SELECT * FROM cupcakes WHERE id=?', (product_id,)).fetchone()
+            product = db.execute('SELECT * FROM cupcakes WHERE id=? AND excluido_em IS NULL', (product_id,)).fetchone()
             categories = db.execute('SELECT * FROM categorias ORDER BY id').fetchall()
         if not product:
             raise HTTPException(404, 'Produto não encontrado.')
-        return page(request, 'admin_produto.html', product=product, categories=categories, error=None)
+        with db_connect() as db:
+            allergens = db.execute('SELECT * FROM alergenos ORDER BY nome').fetchall()
+            selected_allergens = [r[0] for r in db.execute(
+                'SELECT alergeno_id FROM cupcake_alergenos WHERE cupcake_id=?',(product_id,)).fetchall()]
+        return page(request, 'admin_produto.html', product=product, categories=categories,
+                    allergens=allergens, selected_allergens=selected_allergens, error=None)
 
     @app.post('/admin/produtos/salvar')
     async def save_product(request: Request):
@@ -647,6 +1007,11 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         name = str(form.get('nome', '')).strip()[:100]
         description = str(form.get('descricao', '')).strip()[:500]
         nutrition = str(form.get('informacoes_nutricionais', '')).strip()[:1000]
+        ingredients = str(form.get('ingredientes', '')).strip()[:800]
+        try:
+            selected = {int(aid) for aid in form.getlist('alergenos')}
+        except ValueError:
+            selected = {-1}
         photo_key = str(form.get('imagem_id', 'chocolate')).strip()
         icon = PHOTOS.get(photo_key, {}).get('imagem_url', '')
         errors = []
@@ -655,6 +1020,8 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             category_id = int(form.get('categoria_id', 0))
             stock = int(form.get('estoque', 0))
             price = parse_brl(str(form.get('preco', '')))
+            if product_id < 0:
+                raise ValueError('Identificador do produto inválido.')
         except (ValueError, TypeError) as exc:
             errors.append(str(exc) or 'Valores inválidos.')
             product_id, category_id, stock, price = 0, 0, 0, 0
@@ -668,24 +1035,56 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             errors.append('Estoque inválido.')
         with db_connect() as db:
             categories = db.execute('SELECT * FROM categorias ORDER BY id').fetchall()
+            allergens = db.execute('SELECT * FROM alergenos ORDER BY nome').fetchall()
+            valid_allergens = {a['id'] for a in allergens}
+            if not selected.issubset(valid_allergens):
+                errors.append('Selecione apenas alergênicos cadastrados.')
             if not db.execute('SELECT id FROM categorias WHERE id=?', (category_id,)).fetchone():
                 errors.append('Categoria inválida.')
-            if product_id and not db.execute('SELECT id FROM cupcakes WHERE id=?', (product_id,)).fetchone():
-                errors.append('Produto não encontrado.')
+            if product_id and not db.execute('''SELECT id FROM cupcakes WHERE id=? AND excluido_em IS NULL''',
+                                             (product_id,)).fetchone():
+                errors.append('Produto inexistente ou já excluído.')
             if not errors:
+                db.execute('BEGIN IMMEDIATE')
                 if product_id:
-                    db.execute('''UPDATE cupcakes SET categoria_id=?,nome=?,descricao=?,preco_centavos=?,estoque=?,imagem_url=?,informacoes_nutricionais=?
-                        WHERE id=?''', (category_id, name, description, price, stock, icon, nutrition or None, product_id))
+                    before_row = db.execute('''SELECT * FROM cupcakes WHERE id=? AND excluido_em IS NULL''',
+                                            (product_id,)).fetchone()
+                    if before_row is None:
+                        raise HTTPException(409, 'Produto excluído durante a edição.')
+                    before = snapshot_produto(before_row)
+                    db.execute('''UPDATE cupcakes SET categoria_id=?,nome=?,descricao=?,preco_centavos=?,
+                                  estoque=?,imagem_url=?,informacoes_nutricionais=?,ingredientes=? WHERE id=?''',
+                               (category_id, name, description, price, stock, icon, nutrition or None,
+                                ingredients or None, product_id))
                 else:
-                    cur = db.execute('''INSERT INTO cupcakes(categoria_id,nome,descricao,preco_centavos,estoque,imagem_url,informacoes_nutricionais)
-                        VALUES (?,?,?,?,?,?,?)''', (category_id, name, description, price, stock, icon, nutrition or None))
+                    before = None
+                    cur = db.execute('''INSERT INTO cupcakes(categoria_id,nome,descricao,preco_centavos,estoque,
+                                        imagem_url,informacoes_nutricionais,ingredientes) VALUES (?,?,?,?,?,?,?,?)''',
+                                     (category_id, name, description, price, stock, icon, nutrition or None,
+                                      ingredients or None))
                     product_id = cur.lastrowid
-                db.execute('INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao) VALUES (?,?,?,?,?)',
-                           (user_id, 'cupcakes', product_id, 'salvar', 'Cadastro ou edição de produto'))
+                before_allergens = {r[0] for r in db.execute(
+                    'SELECT alergeno_id FROM cupcake_alergenos WHERE cupcake_id=?',(product_id,))}
+                db.execute('DELETE FROM cupcake_alergenos WHERE cupcake_id=?', (product_id,))
+                db.executemany('INSERT INTO cupcake_alergenos(cupcake_id,alergeno_id) VALUES (?,?)',
+                               [(product_id, aid) for aid in sorted(selected)])
+                after_row = db.execute('SELECT * FROM cupcakes WHERE id=?', (product_id,)).fetchone()
+                after = snapshot_produto(after_row)
+                if before_allergens != selected:
+                    db.execute('INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao) VALUES (?,?,?,?,?)',
+                               (user_id,'cupcakes',product_id,'editar alergenicos',
+                                json.dumps({'antes':sorted(before_allergens),'depois':sorted(selected)})))
+                if before is None or before != after:
+                    auditar_produto(db, user_id, product_id,
+                                   'criar produto' if before is None else 'editar produto', before, after)
+                if before is not None and before['estoque'] != after['estoque']:
+                    db.execute('''INSERT INTO estoque_movimentos(cupcake_id,variacao,motivo) VALUES (?,?,?)''',
+                               (product_id, after['estoque'] - before['estoque'],
+                                'Ajuste manual pelo administrador'))
         if errors:
-            # Keep the values typed by the administrator when input is rejected.
             return page(request, 'admin_produto.html', status_code=422, product=None,
-                        categories=categories, error=' '.join(errors), form_values=dict(form))
+                        categories=categories, allergens=allergens, selected_allergens=sorted(selected),
+                        error=' '.join(errors), form_values=dict(form))
         flash(request, 'Produto salvo com sucesso.', 'sucesso')
         return redirect('/admin')
 
@@ -694,21 +1093,83 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         user_id = admin_id(request)
         await valid_form(request)
         with db_connect() as db:
-            p = db.execute('SELECT ativo FROM cupcakes WHERE id=?', (product_id,)).fetchone()
+            p = db.execute('SELECT * FROM cupcakes WHERE id=? AND excluido_em IS NULL', (product_id,)).fetchone()
             if not p:
                 raise HTTPException(404, 'Produto não encontrado.')
             db.execute('UPDATE cupcakes SET ativo=? WHERE id=?', (0 if p['ativo'] else 1, product_id))
-            db.execute('INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,?,?,?)',
-                       (user_id, 'cupcakes', product_id, 'alterar visibilidade'))
+            depois = db.execute('SELECT * FROM cupcakes WHERE id=?', (product_id,)).fetchone()
+            auditar_produto(db, user_id, product_id, 'alterar visibilidade',
+                           snapshot_produto(p), snapshot_produto(depois))
         flash(request, 'Visibilidade atualizada.', 'sucesso')
         return redirect('/admin')
+
+    @app.post('/admin/produtos/{product_id}/excluir')
+    async def archive_product(request: Request, product_id: int):
+        # Exclusão lógica mantém integridade de pedidos concluídos, avaliações e auditoria.
+        usuario = admin_id(request)
+        await valid_form(request)
+        with db_connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            item = db.execute('SELECT * FROM cupcakes WHERE id=? AND excluido_em IS NULL',
+                              (product_id,)).fetchone()
+            if item is None:
+                raise HTTPException(404, 'Produto inexistente ou já excluído.')
+            active = db.execute('''SELECT 1 FROM pedido_itens i JOIN pedidos p ON p.id=i.pedido_id
+                                   WHERE i.cupcake_id=? AND p.status NOT IN ('concluido','cancelado')
+                                   LIMIT 1''', (product_id,)).fetchone()
+            if active is not None:
+                raise HTTPException(422, 'Este cupcake possui pedido ativo e não pode ser excluído.')
+            in_combo = db.execute('''SELECT 1 FROM combo_itens i JOIN combos c ON c.id=i.combo_id
+                                     WHERE i.cupcake_id=? AND c.ativo=1 LIMIT 1''',
+                                  (product_id,)).fetchone()
+            if in_combo is not None:
+                raise HTTPException(422, 'Este cupcake pertence a um combo ativo e não pode ser excluído.')
+            db.execute('''UPDATE cupcakes SET ativo=0, excluido_em=CURRENT_TIMESTAMP
+                          WHERE id=? AND excluido_em IS NULL''', (product_id,))
+            depois = db.execute('SELECT * FROM cupcakes WHERE id=?', (product_id,)).fetchone()
+            auditar_produto(db, usuario, product_id, 'excluir produto',
+                           snapshot_produto(item), snapshot_produto(depois))
+        flash(request, 'Produto excluído da vitrine e arquivado para preservar o histórico.', 'sucesso')
+        return redirect('/admin')
+
+    @app.get('/admin/produtos/{product_id}/historico', response_class=HTMLResponse)
+    def product_history(request: Request, product_id: int):
+        admin_id(request)
+        with db_connect() as db:
+            produto = db.execute('SELECT id, nome, excluido_em FROM cupcakes WHERE id=?',
+                                 (product_id,)).fetchone()
+            if produto is None:
+                raise HTTPException(404, 'Produto não encontrado.')
+            rows = db.execute('''SELECT a.acao,a.descricao,a.criado_em,u.nome usuario_nome
+                                 FROM auditoria a LEFT JOIN usuarios u ON u.id=a.usuario_id
+                                 WHERE a.entidade='cupcakes' AND a.entidade_id=?
+                                 ORDER BY a.id DESC LIMIT 150''', (product_id,)).fetchall()
+            history = []
+            for row in rows:
+                desc = row['descricao'] or ''
+                try:
+                    data = json.loads(desc)
+                    if isinstance(data, dict) and set(data) == {'antes','depois'}:
+                        antes = data['antes'] or {}
+                        depois = data['depois'] or {}
+                        changes = [key for key in depois if antes.get(key) != depois.get(key)]
+                        desc = 'Campos alterados: ' + ', '.join(changes) if changes else 'Sem alterações de campos'
+                except (ValueError, TypeError, AttributeError):
+                    pass
+                history.append({'acao':row['acao'],'descricao':desc,
+                                'criado_em':row['criado_em'], 'usuario_nome':row['usuario_nome'] or 'Sistema'})
+        return page(request, 'admin_produto_historico.html', product=produto, history=history)
 
     @app.get('/admin/pedidos', response_class=HTMLResponse)
     def admin_orders(request: Request):
         admin_id(request)
         with db_connect() as db:
-            orders = db.execute('''SELECT p.*, o.descricao entrega FROM pedidos p JOIN opcoes_entrega o ON o.id=p.opcao_entrega_id
-                                   ORDER BY p.id DESC LIMIT 150''').fetchall()
+            orders = db.execute('''SELECT p.*, o.descricao entrega, j.inicio janela_inicio, j.fim janela_fim,
+                              pg.metodo metodo_pagamento, pg.status status_pagamento
+                       FROM pedidos p JOIN opcoes_entrega o ON o.id=p.opcao_entrega_id
+                       LEFT JOIN janelas_entrega j ON j.id=p.janela_entrega_id
+                       LEFT JOIN pagamentos pg ON pg.id=(SELECT MAX(id) FROM pagamentos WHERE pedido_id=p.id)
+                       ORDER BY p.id DESC LIMIT 150''').fetchall()
         return page(request, 'admin_pedidos.html', orders=orders, next_status=NEXT_STATUS)
 
     @app.post('/admin/pedidos/{order_id}/status')
@@ -716,6 +1177,13 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         user_id = admin_id(request)
         form = await valid_form(request)
         target = str(form.get('status', '')).strip()
+        eta_raw = str(form.get('previsao_entrega', '')).strip()
+        eta_value = None
+        if eta_raw:
+            try:
+                eta_value = datetime.strptime(eta_raw, '%Y-%m-%dT%H:%M').isoformat(timespec='minutes')
+            except ValueError:
+                raise HTTPException(422, 'Previsão de entrega inválida.') from None
         with db_connect() as db:
             db.execute('BEGIN IMMEDIATE')
             order = db.execute('SELECT * FROM pedidos WHERE id=?', (order_id,)).fetchone()
@@ -723,18 +1191,22 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
                 raise HTTPException(404, 'Pedido não encontrado.')
             if target not in NEXT_STATUS.get(order['status'], []):
                 raise HTTPException(422, 'Mudança de status não permitida.')
+            payment = db.execute('''SELECT * FROM pagamentos WHERE pedido_id=? ORDER BY id DESC LIMIT 1''',
+                                 (order_id,)).fetchone()
+            if target == 'confirmado' and payment and payment['metodo'] in DEMO_METHODS and payment['status'] != 'aprovado':
+                raise HTTPException(422, 'O pagamento demonstrativo precisa ser aprovado na simulação antes da confirmação do pedido.')
             if target == 'cancelado':
-                items = db.execute('SELECT cupcake_id,quantidade FROM pedido_itens WHERE pedido_id=?', (order_id,)).fetchall()
-                # Um cupom de uso limitado volta a ficar disponível se o pedido for cancelado.
-                db.execute('DELETE FROM cupom_utilizacoes WHERE pedido_id=?', (order_id,))
-                for item in items:
-                    if item['cupcake_id'] is not None:
-                        db.execute('UPDATE cupcakes SET estoque=estoque+? WHERE id=?', (item['quantidade'], item['cupcake_id']))
-                        db.execute('INSERT INTO estoque_movimentos(cupcake_id,pedido_id,variacao,motivo) VALUES (?,?,?,?)',
-                                   (item['cupcake_id'], order_id, item['quantidade'], 'Pedido cancelado'))
-            db.execute('UPDATE pedidos SET status=? WHERE id=?', (target, order_id))
+                restore_order_stock(db, order_id)
+                if payment and payment['metodo'] in DEMO_METHODS and payment['status']=='aprovado':
+                    db.execute("UPDATE pagamentos SET status='estornado',atualizado_em=CURRENT_TIMESTAMP WHERE id=?",
+                               (payment['id'],))
+                    log_payment_event(db, payment['id'], 'aprovado', 'estornado', 'cancelamento_administrativo_simulado')
+            db.execute('''UPDATE pedidos SET status=?,
+                          previsao_entrega_em=COALESCE(?,previsao_entrega_em) WHERE id=?''',
+                       (target, eta_value, order_id))
             db.execute('INSERT INTO eventos_pedido(pedido_id,status,observacao) VALUES (?,?,?)',
                        (order_id, target, 'Atualizado pela administração'))
+            notify_status_change(db, order_id, order['usuario_id'], target)
             db.execute('INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao) VALUES (?,?,?,?,?)',
                        (user_id, 'pedidos', order_id, 'alterar status', f'{order["status"]} -> {target}'))
         flash(request, 'Status do pedido atualizado.', 'sucesso')
@@ -754,6 +1226,10 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         form = await valid_form(request)
         code = str(form.get('codigo', '')).strip().upper()
         kind = str(form.get('tipo', ''))
+        start_date = str(form.get('valido_de','')).strip()
+        end_date = str(form.get('valido_ate','')).strip()
+        if not valid_dates(start_date,end_date):
+            raise HTTPException(422,'Datas inválidas ou intervalo de validade invertido.')
         try:
             amount = int(form.get('valor', -1)) if kind == 'percentual' else parse_brl(str(form.get('valor', '')))
             minimum = parse_brl(str(form.get('minimo', '0')))
@@ -767,8 +1243,9 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             if db.execute('SELECT 1 FROM cupons WHERE codigo=?', (code,)).fetchone():
                 flash(request, 'Já existe um cupom com esse código.', 'erro')
                 return redirect('/admin/cupons')
-            db.execute('''INSERT INTO cupons(codigo,tipo,valor,valor_minimo_centavos,limite_uso,ativo)
-                         VALUES (?,?,?,?,?,1)''', (code,kind,amount,minimum,limit or None))
+            db.execute('''INSERT INTO cupons(codigo,tipo,valor,valor_minimo_centavos,limite_uso,
+                         valido_de,valido_ate,ativo) VALUES (?,?,?,?,?,?,?,1)''',
+                       (code,kind,amount,minimum,limit or None,start_date or None,end_date or None))
             db.execute("INSERT INTO auditoria(usuario_id,entidade,acao,descricao) VALUES (?,'cupons','criar',?)",(uid,code))
         flash(request, 'Cupom criado.', 'sucesso')
         return redirect('/admin/cupons')
@@ -810,29 +1287,31 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         return redirect('/admin/avaliacoes')
 
     @app.get('/admin/relatorios', response_class=HTMLResponse)
-    def reports(request: Request, mes: str = ''):
+    def reports(request: Request, mes: str = '', categoria: str = ''):
         admin_id(request)
         if mes and not re.fullmatch(r'20\d\d-(0[1-9]|1[0-2])',mes):
             raise HTTPException(422, 'Mês inválido.')
-        condition = " AND strftime('%Y-%m',p.criado_em)=?" if mes else ''
-        params = (mes,) if mes else ()
-        with db_connect() as db:
-            overview = db.execute('''SELECT COUNT(*) pedidos,COALESCE(SUM(total_centavos),0) receita,
-                    COALESCE(SUM(desconto_centavos),0) descontos FROM pedidos p
-                    WHERE status<>'cancelado' ''' + condition, params).fetchone()
-            top = db.execute('''SELECT pi.nome_snapshot nome,SUM(pi.quantidade) unidades
-                    FROM pedido_itens pi JOIN pedidos p ON p.id=pi.pedido_id
-                    WHERE p.status<>'cancelado' '''+condition+''' GROUP BY pi.nome_snapshot
-                    ORDER BY unidades DESC LIMIT 10''',params).fetchall()
-            by_status = db.execute('SELECT status,COUNT(*) quantidade FROM pedidos GROUP BY status ORDER BY quantidade DESC').fetchall()
-        return page(request, 'admin_relatorios.html', overview=overview, top=top, by_status=by_status, mes=mes)
+        if categoria and (not categoria.isdigit() or len(categoria)>8):
+            raise HTTPException(422, 'Categoria inválida.')
+        try:
+            with db_connect() as db:
+                data = report_data(db, month=mes, category_id=int(categoria) if categoria else None)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        return page(request,'admin_relatorios.html', **data, mes=mes, categoria=categoria)
 
     @app.get('/admin/entregas', response_class=HTMLResponse)
     def deliveries_admin(request: Request):
         admin_id(request)
         with db_connect() as db:
             options = db.execute('SELECT * FROM opcoes_entrega ORDER BY id').fetchall()
-        return page(request, 'admin_entregas.html', options=options)
+            regions = db.execute('SELECT * FROM regioes_entrega ORDER BY cep_inicio,id').fetchall()
+            windows = db.execute('''SELECT j.*,o.descricao opcao FROM janelas_entrega j JOIN opcoes_entrega o
+                             ON o.id=j.opcao_entrega_id ORDER BY j.opcao_entrega_id,j.inicio''').fetchall()
+            blackouts = db.execute('''SELECT b.*,o.descricao opcao FROM agenda_bloqueios b JOIN opcoes_entrega o
+                              ON b.opcao_entrega_id=o.id ORDER BY b.data''').fetchall()
+        return page(request, 'admin_entregas.html', options=options, regions=regions,
+                    windows=windows, blackouts=blackouts)
 
     @app.post('/admin/entregas/{delivery_id}/salvar')
     async def update_delivery(request: Request, delivery_id: int):
@@ -845,15 +1324,113 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         if len(description)<4:
             raise HTTPException(422, 'Informe uma descrição válida.')
         with db_connect() as db:
-            target = db.execute('SELECT id,ativa FROM opcoes_entrega WHERE id=?',(delivery_id,)).fetchone()
+            target = db.execute('SELECT id,tipo,ativa FROM opcoes_entrega WHERE id=?',(delivery_id,)).fetchone()
             if not target: raise HTTPException(404, 'Modalidade não encontrada.')
             if not active and target['ativa'] and db.execute('SELECT COUNT(*) FROM opcoes_entrega WHERE ativa=1').fetchone()[0]<=1:
                 flash(request, 'Mantenha pelo menos uma modalidade ativa.', 'erro')
                 return redirect('/admin/entregas')
+            if target['tipo']=='retirada':
+                cost=0
             db.execute('UPDATE opcoes_entrega SET descricao=?,custo_base_centavos=?,ativa=? WHERE id=?',
                        (description,cost,int(active),delivery_id))
             db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'opcoes_entrega',?,'editar')",(uid,delivery_id))
         flash(request, 'Modalidade de entrega salva.', 'sucesso')
+        return redirect('/admin/entregas')
+
+    @app.post('/admin/entregas/regioes/criar')
+    async def admin_create_region(request: Request):
+        uid = admin_id(request)
+        f = await valid_form(request)
+        description = str(f.get('descricao', '')).strip()[:100]
+        try:
+            start, end = cep_normalizado(f.get('cep_inicio','')), cep_normalizado(f.get('cep_fim',''))
+            value = parse_brl(str(f.get('adicional','0')))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        if not description or start > end:
+            raise HTTPException(422, 'Informe descrição e intervalo de CEP em ordem crescente.')
+        with db_connect() as db:
+            overlap = db.execute('''SELECT 1 FROM regioes_entrega WHERE ativa=1
+                               AND cep_inicio<=? AND cep_fim>=? LIMIT 1''', (end,start)).fetchone()
+            if overlap:
+                raise HTTPException(422, 'Esta faixa se sobrepõe a outra região ativa.')
+            cur = db.execute('''INSERT INTO regioes_entrega(descricao,cep_inicio,cep_fim,taxa_adicional_centavos)
+                                VALUES (?,?,?,?)''', (description,start,end,value))
+            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'regioes_entrega',?,'criar')",(uid,cur.lastrowid))
+        flash(request, 'Região atendida cadastrada.', 'sucesso')
+        return redirect('/admin/entregas')
+
+    @app.post('/admin/entregas/regioes/{region_id}/alternar')
+    async def admin_toggle_region(request: Request, region_id: int):
+        uid = admin_id(request)
+        await valid_form(request)
+        with db_connect() as db:
+            region = db.execute('SELECT * FROM regioes_entrega WHERE id=?',(region_id,)).fetchone()
+            if not region: raise HTTPException(404, 'Região inexistente.')
+            if not region['ativa']:
+                overlap = db.execute('''SELECT 1 FROM regioes_entrega WHERE ativa=1 AND id<>?
+                            AND cep_inicio<=? AND cep_fim>=?''', (region_id,region['cep_fim'],region['cep_inicio'])).fetchone()
+                if overlap: raise HTTPException(422, 'Há sobreposição com uma região ativa.')
+            db.execute('UPDATE regioes_entrega SET ativa=? WHERE id=?',(0 if region['ativa'] else 1,region_id))
+            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'regioes_entrega',?,'alternar')",(uid,region_id))
+        return redirect('/admin/entregas')
+
+    @app.post('/admin/entregas/janelas/criar')
+    async def admin_create_window(request: Request):
+        uid=admin_id(request)
+        f=await valid_form(request)
+        try:
+            option_id,capacity=int(f.get('opcao_entrega','0')),int(f.get('capacidade','0'))
+        except (ValueError,TypeError):
+            raise HTTPException(422, 'Modalidade ou capacidade inválida.')
+        start,end=str(f.get('inicio','')).strip(),str(f.get('fim','')).strip()
+        if not re.fullmatch(r'\d{2}:\d{2}',start) or not re.fullmatch(r'\d{2}:\d{2}',end) or not '00:00' <= start < end <= '23:59' or capacity < 1 or capacity > 999:
+            raise HTTPException(422, 'Informe horário HH:MM e capacidade entre 1 e 999.')
+        if int(start[:2])>23 or int(end[:2])>23 or int(start[3:])>59 or int(end[3:])>59:
+            raise HTTPException(422, 'Hora fora do intervalo permitido.')
+        with db_connect() as db:
+            if not db.execute('SELECT 1 FROM opcoes_entrega WHERE id=?',(option_id,)).fetchone():
+                raise HTTPException(422, 'Modalidade inexistente.')
+            overlap=db.execute('''SELECT 1 FROM janelas_entrega WHERE opcao_entrega_id=?
+                          AND inicio<? AND fim>?''',(option_id,end,start)).fetchone()
+            if overlap: raise HTTPException(422,'Horário sobreposto a outra janela de atendimento.')
+            cur=db.execute('''INSERT INTO janelas_entrega(opcao_entrega_id,inicio,fim,capacidade) VALUES (?,?,?,?)''',
+                       (option_id,start,end,capacity))
+            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'janelas_entrega',?,'criar')",(uid,cur.lastrowid))
+        flash(request,'Horário de atendimento salvo.','sucesso')
+        return redirect('/admin/entregas')
+
+    @app.post('/admin/entregas/bloqueios/criar')
+    async def admin_block_schedule(request: Request):
+        uid=admin_id(request)
+        f=await valid_form(request)
+        try:
+            option_id=int(f.get('opcao_entrega','0'))
+            block_date=date.fromisoformat(str(f.get('data','')))
+        except (ValueError,TypeError):
+            raise HTTPException(422, 'Data ou modalidade inválida.')
+        if block_date < date.today():
+            raise HTTPException(422,'Não é permitido bloquear data passada.')
+        with db_connect() as db:
+            if not db.execute('SELECT 1 FROM opcoes_entrega WHERE id=?',(option_id,)).fetchone():
+                raise HTTPException(422,'Modalidade inexistente.')
+            try:
+                cur=db.execute('INSERT INTO agenda_bloqueios(opcao_entrega_id,data,motivo) VALUES (?,?,?)',
+                             (option_id,block_date.isoformat(),str(f.get('motivo','Fechado')).strip()[:150]))
+            except sqlite3.IntegrityError:
+                raise HTTPException(422,'Data já bloqueada para esta modalidade.') from None
+            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'agenda_bloqueios',?,'criar')",(uid,cur.lastrowid))
+        return redirect('/admin/entregas')
+
+    @app.post('/admin/entregas/bloqueios/{block_id}/remover')
+    async def admin_unblock_schedule(request: Request, block_id: int):
+        uid=admin_id(request)
+        await valid_form(request)
+        with db_connect() as db:
+            if not db.execute('SELECT 1 FROM agenda_bloqueios WHERE id=?',(block_id,)).fetchone():
+                raise HTTPException(404,'Bloqueio não encontrado.')
+            db.execute('DELETE FROM agenda_bloqueios WHERE id=?',(block_id,))
+            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'agenda_bloqueios',?,'remover')",(uid,block_id))
         return redirect('/admin/entregas')
 
     @app.get('/admin/clientes', response_class=HTMLResponse)
@@ -863,6 +1440,47 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
             users = db.execute("SELECT id,nome,email,ativo,criado_em FROM usuarios WHERE papel='cliente' ORDER BY id DESC").fetchall()
         return page(request, 'admin_clientes.html', users=users)
 
+    @app.get('/admin/clientes/{user_id}/editar', response_class=HTMLResponse)
+    def admin_customer_edit(request: Request, user_id: int):
+        admin_id(request)
+        with db_connect() as db:
+            user = db.execute("SELECT id,nome,email,ativo FROM usuarios WHERE id=? AND papel='cliente'",(user_id,)).fetchone()
+            if not user: raise HTTPException(404,'Cliente não encontrado.')
+        return page(request,'admin_cliente_editar.html',user=user,error=None)
+
+    @app.post('/admin/clientes/{user_id}/salvar')
+    async def admin_customer_save(request: Request, user_id: int):
+        editor_id = admin_id(request)
+        form = await valid_form(request)
+        name = str(form.get('nome','')).strip()[:120]
+        email = str(form.get('email','')).strip().lower()[:200]
+        if len(name)<3 or not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+',email):
+            raise HTTPException(422,'Nome ou e-mail inválido.')
+        with db_connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            user = db.execute("SELECT id,nome,email,ativo FROM usuarios WHERE id=? AND papel='cliente'",(user_id,)).fetchone()
+            if user is None: raise HTTPException(404,'Cliente não encontrado.')
+            if db.execute('SELECT 1 FROM usuarios WHERE email=? AND id<>?',(email,user_id)).fetchone():
+                raise HTTPException(422,'E-mail já utilizado por outra conta.')
+            previous={'nome':user['nome'],'email':user['email']}
+            db.execute("UPDATE usuarios SET nome=?,email=? WHERE id=? AND papel='cliente'",(name,email,user_id))
+            detail=json.dumps({'antes':previous,'depois':{'nome':name,'email':email}},ensure_ascii=False)
+            db.execute('''INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao)
+                VALUES (?,'usuarios',?,'editar cadastro',?)''',(editor_id,user_id,detail))
+        flash(request,'Cadastro do cliente atualizado.','sucesso')
+        return redirect('/admin/clientes')
+
+    @app.get('/admin/clientes/{user_id}/historico', response_class=HTMLResponse)
+    def admin_customer_history(request: Request, user_id: int):
+        admin_id(request)
+        with db_connect() as db:
+            user=db.execute("SELECT id,nome,email FROM usuarios WHERE id=? AND papel='cliente'",(user_id,)).fetchone()
+            if user is None: raise HTTPException(404,'Cliente não encontrado.')
+            changes=db.execute('''SELECT a.acao,a.descricao,a.criado_em, u.nome autor
+                 FROM auditoria a LEFT JOIN usuarios u ON u.id=a.usuario_id
+                 WHERE a.entidade='usuarios' AND a.entidade_id=? ORDER BY a.id DESC LIMIT 100''',(user_id,)).fetchall()
+        return page(request,'admin_cliente_historico.html',user=user,changes=changes)
+
     @app.post('/admin/clientes/{user_id}/alternar')
     async def toggle_customer(request: Request, user_id: int):
         uid = admin_id(request)
@@ -870,9 +1488,27 @@ def create_app(db_path: str | Path | None = None, *, testing: bool = False) -> F
         with db_connect() as db:
             user = db.execute("SELECT ativo FROM usuarios WHERE id=? AND papel='cliente'",(user_id,)).fetchone()
             if not user: raise HTTPException(404, 'Conta não encontrada.')
-            db.execute('UPDATE usuarios SET ativo=? WHERE id=?', (0 if user['ativo'] else 1,user_id))
-            db.execute("INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao) VALUES (?,'usuarios',?,'alternar acesso')",(uid,user_id))
+            new_active=0 if user['ativo'] else 1
+            db.execute('UPDATE usuarios SET ativo=? WHERE id=?', (new_active,user_id))
+            db.execute('''INSERT INTO auditoria(usuario_id,entidade,entidade_id,acao,descricao)
+                        VALUES (?,'usuarios',?,'alternar acesso',?)''',
+                       (uid,user_id,f"ativo: {user['ativo']} -> {new_active}"))
         return redirect('/admin/clientes')
+
+    @app.get('/admin/notificacoes', response_class=HTMLResponse)
+    def admin_notifications(request: Request):
+        admin_user=admin_id(request)
+        with db_connect() as db:
+            alerts=user_notifications(db,admin_user,limit=100)
+        return page(request,'admin_notificacoes.html',alerts=alerts)
+
+    @app.post('/admin/notificacoes/ler')
+    async def admin_read_notifications(request: Request):
+        admin_user=admin_id(request)
+        await valid_form(request)
+        with db_connect() as db:
+            mark_user_notifications_read(db,admin_user)
+        return redirect('/admin/notificacoes')
 
     @app.get('/saude')
     def health():

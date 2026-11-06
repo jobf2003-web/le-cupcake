@@ -1,4 +1,4 @@
-"""Verificações técnicas dos principais fluxos da loja acadêmica."""
+"""Testes automatizados dos fluxos mais importantes da loja acadêmica."""
 import re
 import sqlite3
 from urllib.parse import urlparse
@@ -56,7 +56,7 @@ def test_catalog_has_eight_products(setup):
     assert 'Red Velvet' in result.text
     with sqlite3.connect(db_path) as db:
         assert db.execute('SELECT COUNT(*) FROM cupcakes').fetchone()[0] == 8
-        assert db.execute('SELECT COUNT(*) FROM sqlite_master WHERE type="table" AND name NOT LIKE "sqlite_%"').fetchone()[0] == 23
+        assert db.execute('SELECT COUNT(*) FROM sqlite_master WHERE type="table" AND name NOT LIKE "sqlite_%"').fetchone()[0] == 27
 
 
 def test_filter_and_search_parameterized(setup):
@@ -290,7 +290,7 @@ def test_theme_v04_and_cache_busting(setup):
     client, _ = setup
     html = client.get('/').text
     css = client.get('/static/style.css?v=0.4')
-    assert '?v=0.6' in html
+    assert '?v=0.2' in html
     assert css.status_code == 200
     assert 'LE CUPCAKE — PALETA 0.4' in css.text
     assert '#3D634D' in css.text
