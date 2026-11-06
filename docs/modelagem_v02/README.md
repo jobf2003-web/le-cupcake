@@ -1,6 +1,6 @@
 # Modelagem da versão 0.2 — Le Cupcake
 
-Modelos de **pré-homologação**, extraídos do código e do esquema SQLite migrado. Eles **não representam a versão 0.1 inicial** e não devem ser associados retroativamente ao primeiro vídeo.
+Modelos da **versão 0.2 publicada**, extraídos do código e do esquema SQLite migrado. Eles **não representam a versão 0.1 inicial** e não devem ser associados retroativamente ao primeiro vídeo.
 
 1. [Casos de uso e fronteira demonstrativa](01_Casos_de_uso.md)
 2. [Classes de domínio](02_Classes_de_dominio.md)
