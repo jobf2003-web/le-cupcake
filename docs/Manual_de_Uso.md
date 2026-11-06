@@ -1,6 +1,6 @@
 # Manual de uso — Le Cupcake 0.2 (branch em desenvolvimento)
 
-Este manual descreve o código da branch `pit-ii-25-historias-completas`. **A versão pública no Render ainda não foi substituída**. Use apenas dados fictícios.
+Este manual descreve a versão 0.2 integrada à `main` e publicada no Render. Use apenas dados fictícios.
 
 ## Preparação local
 
@@ -33,4 +33,4 @@ Instale Python 3.11+, execute `python -m pip install -r requirements.txt` e `pyt
 - Testes: `python -m pip install -r requirements-dev.txt && python -m pytest -q`. Resultado local de referência: **93 aprovados**. Faltam medições de carga, inspeção visual em navegador real e confirmação da publicação final.
 - Fotografias externas e licenças devem ser conferidas antes do uso público.
 
-O primeiro vídeo e as cinco avaliações pertencem ao histórico da versão anterior. A nova apresentação será gravada apenas após a validação e publicação da versão 0.2.
+O primeiro vídeo e as cinco avaliações pertencem ao histórico da versão anterior. O segundo vídeo apresenta as atualizações da versão 0.2 publicada: https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing.
