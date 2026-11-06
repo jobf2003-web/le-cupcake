@@ -45,4 +45,4 @@ erDiagram
 - Índices e colunas acrescentados pelas migrações não constam integralmente do `schema.sql` base.
 - Todos os preços são representados em centavos; valores de relatórios não são recebimentos financeiros reais.
 
-O dicionário completo em Word e as vistas PNG/DOT foram gerados e renderizados no pacote do Ciclo F; homologação pública ainda pendente.
+O dicionário completo em Word integra os documentos da versão 0.2 publicada. Os modelos são compatíveis com o esquema migrado da aplicação.
