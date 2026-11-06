@@ -1,6 +1,6 @@
 # Le Cupcake — PIT II · Etapa 2 · Ciclo C: cliente, promoções e dados de produtos
 
-**Status:** implementado e aprovado nos testes automáticos locais; **não publicado** no site público. Este trabalho complementa os Ciclos A e B na branch `pit-ii-25-historias-completas`, prosseguindo com a **implementação da versão 0.2**, de acordo com a sequência histórica pactuada: **versão inicial 0.1 → cinco avaliações + revisão da PIT I → desenvolvimento da versão 0.2**. Os registros dos avaliadores não foram alterados. As funcionalidades listadas abaixo não existiam integralmente na versão inicial e não devem ser apresentadas retroativamente como existentes na 0.1.
+**Status:** implementado e aprovado nos testes automáticos locais, posteriormente integrado à versão 0.2 publicada no Render. Este trabalho complementa os Ciclos A e B na branch `pit-ii-25-historias-completas`, prosseguindo com a **implementação da versão 0.2**, de acordo com a sequência histórica pactuada: **versão inicial 0.1 → cinco avaliações + revisão da PIT I → desenvolvimento da versão 0.2**. Os registros dos avaliadores não foram alterados. As funcionalidades listadas abaixo não existiam integralmente na versão inicial e não devem ser apresentadas retroativamente como existentes na 0.1.
 
 ## Implementações verificadas
 
