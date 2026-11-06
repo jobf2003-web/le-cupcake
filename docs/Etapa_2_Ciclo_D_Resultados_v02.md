@@ -6,7 +6,7 @@
 
 ## 1. Evolução histórica verídica
 
-A versão **0.1** foi a implementação inicial apresentada no primeiro vídeo. Após as cinco avaliações registradas e a revisão do backlog de **25 histórias da PIT I**, constatamos que faltava implementar funções previstas originalmente. A nova **versão 0.2** agrega melhorias decorrentes das avaliações **e**, distintamente, corrige lacunas identificadas na comparação com o projeto inicial. O segundo vídeo deverá mostrar essa evolução após a validação final. As fichas originais não são reescritas e não são atribuídas a elas solicitações que não constam nos registros.
+A versão **0.1** foi a implementação inicial apresentada no primeiro vídeo. Após as cinco avaliações registradas e a revisão do backlog de **25 histórias da PIT I**, constatamos que faltava implementar funções previstas originalmente. A nova **versão 0.2** agrega melhorias decorrentes das avaliações **e**, distintamente, corrige lacunas identificadas na comparação com o projeto inicial. O segundo vídeo apresenta essa evolução na versão 0.2 publicada. As fichas originais não são reescritas e não são atribuídas a elas solicitações que não constam nos registros.
 
 Os testes e alterações deste ciclo foram desenvolvidos na branch isolada; não constituem publicação da aplicação final.
 
@@ -50,8 +50,8 @@ Executado localmente em uma cópia da branch, com Pytest/FastAPI TestClient e ba
 - A hospedagem gratuita com SQLite pode não manter os dados após reinicialização, dependendo de configuração de armazenamento. Não alegar persistência em produção sem comprovação.
 - O gráfico permite alternância acessível por controle JavaScript; comportamento visual real ainda requer verificação em navegador.
 
-## 6. Próximos passos
+## 6. Continuidade e publicação
 
-O **Ciclo E** abordará os recursos de pagamento da US-12/US-25 com demonstração explícita ou ambiente de homologação quando houver acesso, sem fingir cobranças reais. O fechamento deverá revisar **todas** as 25 histórias (inclusive critérios não funcionais), atualizar UML, modelo de dados e dicionário, laudo, formulário e apresentação do segundo vídeo de acordo com o que foi efetivamente desenvolvido e testado.
+O Ciclo E integrou o pagamento demonstrativo e o Ciclo F consolidou a modelagem, os testes e a documentação da versão 0.2. Os ciclos A–F foram incorporados à `main`, com implantação ativa no Render. A suíte automatizada global concluiu 93 testes locais; a ausência de SMS/e-mail externo, gateway bancário e logística real está declarada como limitação do protótipo acadêmico.
 
-**Regra de publicação:** a `main` e o site público devem permanecer intactos até concluir e verificar a versão 0.2. Este relatório é um documento de desenvolvimento, não atestado de conclusão do projeto.
+As cinco fichas de avaliação e o primeiro vídeo permaneceram preservados; o segundo vídeo registra a solução 0.2.
