@@ -1,67 +1,38 @@
-# Le Cupcake — Projeto Integrador Transdisciplinar em Engenharia de Software II
+# Le Cupcake — Projeto Integrador em Engenharia de Software II
 
-**Versão acadêmica atual: 0.2, integrada à branch `main` em 5 de novembro de 2026.** A versão inicial 0.1 e o primeiro vídeo são registros históricos. A versão 0.2 foi desenvolvida após as cinco avaliações e a revisão das 25 histórias da PIT I. A confirmação do deploy da versão atual no Render é uma verificação operacional separada.
+A Le Cupcake é uma loja virtual acadêmica de cupcakes, desenvolvida como continuidade do planejamento realizado na PIT I. A versão inicial 0.1 foi apresentada no primeiro vídeo. Após a etapa de avaliações e a revisão das 25 histórias de usuário, o projeto evoluiu para a versão 0.2.
 
-O projeto é uma **loja virtual fictícia**, sem processamento de pagamentos reais, entregas físicas, serviço de SMS/e-mail para andamento de pedidos ou garantias de persistência em hospedagem gratuita. Não use dados pessoais verdadeiros no protótipo.
+A aplicação está disponível em **https://le-cupcake.onrender.com/**, e o código-fonte está publicado na branch `main` deste repositório.
 
-## Evolução verificável
+## Funcionalidades
 
-1. **0.1 — primeiro vídeo:** implementação inicial da loja, antes da ampliação.
-2. **Cinco avaliações e revisão do backlog da PIT I:** foram preservadas as avaliações históricas; as lacunas descobertas na revisão dos requisitos não são apresentadas como sugestões que os avaliadores teriam feito.
-3. **0.2 — Ciclos A–E:** atualização incremental do site com filtros dinâmicos, migrações, gestão de produtos, CEP e agenda demonstrativos, combos, relacionamento, mensagens internas e pagamentos simulados.
-4. **Ciclo F e integração:** consolidação da documentação, dicionário de dados, diagramas e auditoria; os ciclos A–F foram integrados à `main`. A validação do Render e o segundo vídeo são etapas operacionais separadas.
+O catálogo apresenta cupcakes com pesquisa, filtros de categoria, preços e disponibilidade. O cliente pode selecionar produtos avulsos ou montar combos, alterar o carrinho, aplicar cupons e registrar pedidos demonstrativos.
 
-## Funções disponíveis no código da versão 0.2
+O checkout oferece entrega ou retirada, cálculo local de taxas por região, horários de agendamento e opções de pagamento simuladas. Clientes cadastrados podem consultar pedidos e avaliações; a área administrativa permite gerenciar produtos, estoque, pedidos, cupons, entregas, contas e relatórios.
 
-- **Vitrine:** catálogo com disponibilidade, busca e filtros dinâmicos, produtos e promoções.
-- **Compra:** carrinho, combos com controle de estoque, cupom, cálculo local de taxa por faixas de CEP, entrega/retirada e agendamento demonstrativo em até 15 dias.
-- **Pagamento:** escolha entre `PIX demonstrativo`, `cartão demonstrativo` e `a combinar`. Aprovação/recusa são fictícias e idempotentes; **não são cobranças nem estornos reais**.
-- **Cliente:** cadastro, login, pedidos e recuperação por token com envio apenas se SMTP/HTTPS estiver realmente configurado; recomendações por categorias do histórico; avaliações moderadas; notificações **internas**.
-- **Administração:** produtos, arquivamento e auditoria, pedidos e estados, cupons, horários e regiões, contas de clientes e relatórios. Os valores exibidos são valores de pedidos, **não receita financeira recebida**.
-- **Acompanhamento:** status consultado automaticamente a cada 15 segundos, **não** push em tempo real.
+O acompanhamento de pedidos é atualizado por consultas periódicas. Os avisos de andamento são exibidos dentro da aplicação.
 
-**Ressalvas da PIT I:** nem todos os critérios de aceitação e metas não funcionais foram comprovados. US-11 e US-21 não enviam SMS/e-mail; US-12 é demonstrativa; **US-25 não possui gateway real integrado**. Consultar o [mapa atualizado de 25 histórias](docs/Mapa_25_Historias.md) e o [relatório do Ciclo F](docs/Ciclo_F_Auditoria_Consolidada_v02.md).
+## Tecnologias
 
-## Tecnologias e arquitetura
+O sistema utiliza Python 3.11+, FastAPI, Jinja2, HTML, CSS e JavaScript, com banco SQLite. A estrutura-base contém 23 tabelas e sete migrações elevam o modelo final a 27 tabelas, com 173 colunas, 34 chaves estrangeiras e 20 índices nomeados.
 
-Python 3.11+, FastAPI, Jinja2, HTML, CSS, JavaScript, SQLite, Pytest/HTTPX. A organização atual é incremental por serviços; **não é MVC formal completo**. `schema.sql` define **23 tabelas-base**; `migrations.py` aplica versões 1–7, totalizando **27 tabelas, 173 colunas e 34 chaves estrangeiras** no banco migrado. O carrinho operacional é guardado em **sessão assinada**; as tabelas projetadas `carrinhos`/`carrinho_itens` não equivalem a um carrinho persistente em uso.
+## Execução local
 
-## Executar localmente
+1. Instale Python 3.11 ou superior.
+2. Instale as dependências com `python -m pip install -r requirements.txt`.
+3. Execute `python iniciar.py` (ou `INICIAR_WINDOWS.bat` no Windows).
+4. Abra `http://127.0.0.1:8000`.
 
-1. Instale Python 3.11 ou mais recente.
-2. Instale as dependências: `python -m pip install -r requirements.txt`.
-3. Inicie: `python iniciar.py` ou `INICIAR_WINDOWS.bat` no Windows.
-4. Acesse `http://127.0.0.1:8000`.
-5. Para criar administrador, configure `ADMIN_EMAIL` e `ADMIN_PASSWORD` (12+ caracteres), sem incluir credenciais no GitHub.
+As credenciais administrativas são configuradas pelas variáveis `ADMIN_EMAIL` e `ADMIN_PASSWORD`. Não inclua senhas, arquivos `.env` ou dados pessoais reais no repositório.
 
-Banco local de teste em `instance/cupcakes.db`; nunca publique esse banco, `.env`, `.local_secret` ou dados de clientes. No Render gratuito, a persistência do SQLite **não está garantida** sem volume persistente configurado.
+## Testes
 
-## Testes e verificações
+A suíte de referência foi executada em ambiente local por meio de `python -m pytest -q`, com **93 testes automatizados aprovados**. Os casos incluem catálogo, cadastro, pedidos, estoque, combos, agendamento, notificações internas e pagamento demonstrativo.
 
-```bash
-python -m pip install -r requirements-dev.txt
-python -m pytest -q
-```
+A suíte não representa certificação de desempenho sob alto volume de acessos nem validação de serviços externos. O projeto não processa cobranças bancárias, não contrata entregas físicas e não envia SMS/e-mail de acompanhamento. A persistência do SQLite na hospedagem gratuita não é garantida após reinicializações.
 
-O código da versão 0.2 passou em **93 testes automatizados locais**; a checagem de estrutura do Ciclo F encontrou `PRAGMA user_version=7`, 27 tabelas, 173 campos e 34 FKs sem violações na base de teste. Os testes **não** substituem inspeção visual em navegadores reais, ensaios de desempenho/carga, homologação do site publicado, entrega efetiva de SMS/e-mail ou gateway de pagamento.
+## Documentação e apresentação
 
-## Documentação e entrega
+A pasta `docs` reúne a documentação do projeto, a modelagem UML, o dicionário de dados, a rastreabilidade das histórias, os resultados dos ciclos de desenvolvimento, o laudo de qualidade e o formulário da PIT II. As cinco fichas de avaliação e o primeiro vídeo foram preservados como registros da versão inicial.
 
-- [Matriz original das 25 histórias](docs/Matriz_Rastreabilidade_PIT_I_25_Historias.md).
-- [Mapa atualizado, com limites explícitos](docs/Mapa_25_Historias.md).
-- [Auditoria e modelagem — Ciclo F](docs/Ciclo_F_Auditoria_Consolidada_v02.md).
-- [Manual atualizado](docs/Manual_de_Uso.md).
-- [Testes técnicos](docs/Testes_Tecnicos.md).
-- [Checklist real de homologação](docs/Checklist_Entrega_PIT_II.md).
-- [Cinco avaliações históricas em PDF](docs/Cinco_Fichas_Avaliacao_ABNT.pdf), mantidas sem alteração.
-- [Laudo de qualidade da versão 0.2](docs/Laudo_de_Qualidade_Final_ABNT.docx): relatório com os resultados locais, as limitações declaradas e as evidências comparativas das telas 0.1/0.2 (as imagens da 0.2 são de reprodução local, não do Render).
-- [Formulário oficial da PIT II](docs/PIT_atividade_Le_Cupcake_Preenchida.docx): mantém a estrutura do modelo da faculdade e os cinco registros de avaliação. Antes da entrega, conferir sua sincronização com a cópia mais recente e preencher o link verdadeiro do segundo vídeo.
-- [Fontes das fotografias](docs/Referencias_Fotograficas_Simplificadas.docx). A publicação deve observar atribuições CC BY/CC BY-SA.
-
-**Endereço do serviço no Render:** https://le-cupcake.onrender.com/. A implantação da versão 0.2 integrada à `main` foi confirmada como ativa no painel do Render.
-
-**Primeiro vídeo:** registro da implementação inicial 0.1. **Segundo vídeo:** versão 0.2 publicada, com mudanças de interface e funções da revisão das histórias, disponível em https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing. As cinco avaliações foram preservadas.
-
-## Segurança e alcance
-
-O projeto é acadêmico; não processa pagamentos ou cartões, não provê logística real e não garante persistência após reinício na hospedagem gratuita. A suíte de testes não inclui certificação de desempenho para 500/1.000 operações concorrentes, nem medição formal das metas de latência da PIT I. Os limites de escopo são declarados nos documentos técnicos.
+O segundo vídeo apresenta a versão 0.2: https://drive.google.com/file/d/1t3OihMjUK0ExYL8F4_LVbNIh55u8stNu/view?usp=sharing.
