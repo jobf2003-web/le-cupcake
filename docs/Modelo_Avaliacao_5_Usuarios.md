@@ -1,26 +1,15 @@
-# Avaliações da aplicação — modelo a preencher após testes reais
+# Estrutura dos registros de avaliação — PIT II
 
-**Orientação:** peça para cinco colegas ou profissionais de tecnologia testarem a aplicação em um endereço acessível. Não invente nomes, datas, erros ou avaliações. Faça uma cópia do formulário abaixo para cada participante; acrescente capturas de tela dos problemas encontrados. Salve o resultado em PDF para a universidade.
+O modelo de avaliação adotado identifica cinco áreas funcionais: catálogo e navegação; carrinho e pedidos; conta e segurança; promoções e avaliações; administração e relatórios.
 
-## Avaliador 1 (copiar para 2, 3, 4 e 5)
+Os cinco registros da etapa de avaliação são preservados sem alterações nos arquivos [DOCX](Cinco_Fichas_Avaliacao_ABNT.docx) e [PDF](Cinco_Fichas_Avaliacao_ABNT.pdf).
 
-- Nome:
-- Data:
-- Ambiente (navegador, celular/computador):
-- Funcionalidades testadas que funcionaram:
-- Funcionalidades testadas que não funcionaram; erro observado e o que precisa ser corrigido:
-- Funcionalidades não testadas e motivo:
-- Sugestões de melhoria:
-- Captura de tela / evidências (arquivo ou link):
-- Observações sobre facilidade de uso:
+## Campos utilizados nas fichas
 
-## Laudo de qualidade pós-teste
+- Nome e data do registro
+- Funcionalidades verificadas e resultados
+- Ocorrências identificadas e orientações de correção, quando aplicável
+- Funcionalidades não examinadas, com descrição
+- Evidências reunidas na documentação técnica
 
-Após obter as cinco avaliações:
-
-1. Agrupe os problemas por funcionalidade e gravidade.
-2. Relacione cada erro com o teste e a captura de tela.
-3. Documente a causa identificada, a correção efetuada e a data.
-4. Repita o teste e registre o resultado após a correção.
-5. Informe as falhas que não foram resolvidas, sem ocultá-las.
-6. Registre as melhorias adotadas para o vídeo final.
+A etapa de avaliação faz parte da sequência acadêmica **versão 0.1 → avaliações → revisão da PIT I → versão 0.2**. As melhorias e os resultados técnicos da versão 0.2 estão descritos no laudo e no relatório de atualização.
