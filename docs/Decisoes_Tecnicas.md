@@ -1,7 +1,7 @@
 # Decisões técnicas — Le Cupcake 0.2
 
 ## Histórico da implementação
-A PIT I definiu 25 histórias de usuário. Na PIT II foi apresentada a versão inicial **0.1** no primeiro vídeo, seguida das cinco avaliações preservadas. Após a revisão dos requisitos originais, os Ciclos A, A.2, B, C, D, E e F deram origem à versão **0.2**, ainda não publicada. Atribuir cada mudança à revisão dos requisitos ou às avaliações apenas quando sustentado pelo registro.
+A PIT I definiu 25 histórias de usuário. Na PIT II foi apresentada a versão inicial **0.1** no primeiro vídeo, seguida das cinco avaliações preservadas. Após a revisão dos requisitos originais, os Ciclos A, A.2, B, C, D, E e F deram origem à versão **0.2**, integrada à `main` e publicada no Render. Atribuir cada mudança à revisão dos requisitos ou às avaliações apenas quando sustentado pelo registro.
 
 ## Arquitetura e persistência
 - Python/FastAPI, HTML, CSS, JavaScript, templates Jinja2, SQLite e testes Pytest.
@@ -19,4 +19,4 @@ A PIT I definiu 25 histórias de usuário. Na PIT II foi apresentada a versão i
 - Persistência do SQLite no Render gratuito, desempenho sob carga e navegação mobile real não foram comprovados.
 
 ## Qualidade, evidências e publicação
-O código do Ciclo E passou por **93 testes automatizados locais**; isso não prova todos os critérios de aceitação e requisitos não funcionais. Os documentos oficiais devem refletir os resultados locais, sem fingir homologação no Render. As cinco avaliações e o primeiro vídeo são registros da 0.1 e não devem ser alterados. A branch `pit-ii-25-historias-completas` é a fonte do desenvolvimento da 0.2; a `main` permanece preservada até aprovação e autorização expressa.
+O código do Ciclo E passou por **93 testes automatizados locais**; isso não prova todos os critérios de aceitação e requisitos não funcionais. Os documentos oficiais devem refletir os resultados locais, sem fingir homologação no Render. As cinco avaliações e o primeiro vídeo são registros da 0.1 e não devem ser alterados. A branch `pit-ii-25-historias-completas` preserva o desenvolvimento dos ciclos A–F, que foram integrados à `main` para publicação da 0.2. O histórico da 0.1 permaneceu preservado.
