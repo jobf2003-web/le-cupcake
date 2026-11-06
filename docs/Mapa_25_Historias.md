@@ -2,7 +2,7 @@
 
 **Fonte:** documento original da PIT I, com 25 histórias. **Situação:** código dos Ciclos A–F integrado à `main` e publicado no Render, após as cinco avaliações e a revisão da PIT I.
 
-**Importante:** nenhuma história foi declarada 100% homologada em todos os requisitos não funcionais. `Núcleo disponível` é fluxo central implementado/testado localmente; `demonstrativo` não é integração real; `parcial` possui requisitos faltantes; `não implementado` implica ausência de integração externa.
+As situações abaixo distinguem funções disponíveis, recursos demonstrativos e integrações externas fora do escopo acadêmico. Os testes automatizados verificam os fluxos indicados, sem representar certificação formal dos requisitos de desempenho.
 
 | História | Descrição | Situação e limites |
 |---|---|---|
@@ -32,10 +32,10 @@
 | US-24 | Configurar entrega/retirada | Demonstrativo, sem logística real |
 | US-25 | Gateway online | Não implementado externamente |
 
-**Contexto:** o primeiro vídeo representa a 0.1; as cinco avaliações foram mantidas. A revisão das 25 histórias identificou requisitos adicionais posteriormente implementados na 0.2; não atribuir essas lacunas retroativamente aos avaliadores.
+A versão 0.1 foi apresentada no primeiro vídeo e acompanhada pela etapa de avaliações. A revisão posterior das 25 histórias orientou a ampliação para a versão 0.2.
 
 **Evidência local:** 93 testes aprovados; SQLite com 27 tabelas, 173 colunas, 34 FKs e migração v7. O Render confirmou a publicação da versão 0.2. O escopo dos 93 testes automatizados não inclui ensaios de carga, certificação em dispositivos físicos nem garantia de persistência em hospedagem gratuita.
 
 **Restrições:** não existe pagamento real nem gateway (US-12/25), e-mail/SMS de pedido (US-11/21), logística contratada (US-04/05/13/24); a recuperação de senha depende de SMTP configurado (US-07). Consulta de pedidos é por polling 15 s (US-06/19), não push.
 
-A referência técnica do desenvolvimento da versão 0.2 é a documentação do [Ciclo F](Ciclo_F_Auditoria_Consolidada_v02.md). Os arquivos oficiais de entrega refletem a versão 0.2, com 27 tabelas no banco migrado, 93 testes locais de referência e limites do protótipo declarados.
+O relatório de consolidação do Ciclo F registra a modelagem, os 93 testes locais e as 27 tabelas do banco migrado.
